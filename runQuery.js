@@ -23,6 +23,19 @@ query EntriesByContractId($id: String!) {
   }
 `;
 
+// First we will create the results folder if does not exist
+const folderName = 'results';
+
+try {
+  fs.mkdirSync(folderName);
+  console.log(`🥑 Folder '${folderName}' created successfully.`);
+} catch (err) {
+  if (err.code === 'EEXIST') {
+    console.log(`🥑 The folder '${folderName}' already exists.`);
+  } else {
+    console.error(`An error occurred: ${err}`);
+  }
+}
 
 // Now we will get some information about the contract we subscribed:
 const runQuery = async () => {
