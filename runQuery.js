@@ -1,4 +1,5 @@
 const axios = require('axios');
+const fs = require('fs')
 
 const MERCURY_ACCESS_TOKEN = process.env.MERCURY_ACCESS_TOKEN;
 const MERCURY_GRAPHQL_ENDPOINT = process.env.MERCURY_GRAPHQL_ENDPOINT;
@@ -44,9 +45,19 @@ const runQuery = async () => {
         const response = await axios.post(`${MERCURY_GRAPHQL_ENDPOINT}/graphql`, data, config);
         if (response.status == 200) {
             console.log("success")
+            console.log(response.data);
+            const jsonToSave = JSON.stringify(response.data, null, 2)
+            try {
+
+                fs.writeFileSync('results/responseData.json', jsonToSave)
+            } catch (error) {
+                console.error("error saving file: ", error)
+            }
+
+        } else {
+            console.log(response);
+
         }
-        console.log(response);
-        console.log(response.data);
 
     } catch (error) {
         console.error('Error fetching data:', error);
