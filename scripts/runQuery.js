@@ -23,18 +23,18 @@ query EntriesByContractId($id: String!) {
   }
 `;
 
+const variables = {
+    id: contractAddress
+};
+
 
 // Now we will get some information about the contract we subscribed:
-const runQuery = async () => {
+const runQuery = async (query, variables) => {
     try {
         const config = {
             headers: {
                 'Authorization': `Bearer ${MERCURY_ACCESS_TOKEN}`
             }
-        };
-
-        const variables = {
-            id: contractAddress
         };
 
         const data = {
@@ -63,4 +63,6 @@ const runQuery = async () => {
         console.error('Error fetching data:', error);
     }
 };
-runQuery()
+// runQuery(query, variables)
+
+module.exports = { runQuery }

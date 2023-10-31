@@ -27,20 +27,39 @@ yarn
 
 Subscribe to ledger entries from contract defined on `.env`
 ```
-node subscribe.js
+node scripts/subscribeToEntries.js
 ```
 
 Run a query asking for ledger entries:
 ```
-node runQuery.js
+node scripts/getAllEntriesForContract.js
 ```
 The retrieved data will be available on `results/responseData.json`
 
+## Subscribe to contract events
+Get the container going:
+```
+bash run.sh
+```
+Subscribe to events from a contract:
+```
+node scripts/subscribeToEvent.js
+```
+The retrieved data will be available on `results/responseData.json`
+
+## check your ledger entries and contract events subscriptions
+With your container up and running. Plus, you connected to the shell of the container:
+
+```
+node scripts/getEntrySubscriptions.js
+node scripts/getEventSubscriptions.js
+```
+
 ## Choosing contract to subscribe and get data from
 
-You may want to modify the CONTRACT_ADDRESS environment variable on the `.env` file:
+You may want to modify the CONTRACT_ADDRESS environment variable on the `.env` file, for this example we are going to use the deployed Factory contract of Soroswap. You are able to find the address of the contract on [this link](https://api.soroswap.finance/api/factory).
 ```shell
 ...
-CONTRACT_ADDRESS=CBYTTONE7AK2IEPRQUIPAJF6G35KE6HQCA3RFZWKH4HZQGIVQANUMVAN
+CONTRACT_ADDRESS=CDN7QWURHQAVVTM6EEENOGGXTRQIRQR5KQPB7QBEQQVFQLANGSCN6LEZ
 ...
 ```
