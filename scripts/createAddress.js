@@ -1,11 +1,22 @@
 const { Keypair } = require("soroban-client")
 
-const keypair = Keypair.random();
-console.log("🚀 ~ file: createAddress.js:4 ~ keypair:", keypair)
-const secret = keypair.secret();
-console.log("🚀 ~ file: createAddress.js:6 ~ secret:", secret)
-const public = keypair.publicKey()
-console.log("🚀 ~ file: createAddress.js:8 ~ public:", public)
+function createAddress(){
+    const keypair = Keypair.random();
+    const privateKey = keypair.secret();
+    const publicKey = keypair.publicKey()
+    return {privateKey, publicKey}
+}
+
+// How many accounts we are generating
+let n = 2;
+let keys = []
+for (var i=0; i<n; i++){
+    keys.push(createAddress())
+}
+console.log("We are going to create ", n, "addresses")
+console.log(" ")
+console.log(" ")
+console.log("Keys:", keys)
 
 
 // const restoredKeypair = Keypair.fromSecret(secret);
