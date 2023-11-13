@@ -75,3 +75,12 @@ You may want to modify the CONTRACT_ADDRESS environment variable on the `.env` f
 CONTRACT_ADDRESS=CDN7QWURHQAVVTM6EEENOGGXTRQIRQR5KQPB7QBEQQVFQLANGSCN6LEZ
 ...
 ```
+## Update Mercury's access token
+
+prerequisites:
+    - Fill `MERCURY_TESTER_EMAIL` and `MERCURY_TESTER_PASSWORD` on your `.env`
+
+Run script:
+```bash
+node scripts/updateToken.js
+```
