@@ -1,4 +1,5 @@
 const { Keypair } = require("soroban-client")
+const fs = require("fs");
 
 function createAddress(){
     const keypair = Keypair.random();
@@ -19,8 +20,6 @@ console.log(" ")
 console.log("Keys:", keys)
 
 
-// const restoredKeypair = Keypair.fromSecret(secret);
-
-// const secret = 'SCI7PWMYDDHHOQKNZN4PERO7VJZHSB7762FKPV4L3NYEDUE2OUPNCMAU'
-// const kp = Keypair.fromSecret(secret)
-// const pubkey = kp.publicKey()
+fs.writeFile('testKeys.json', JSON.stringify(keys, null, 4), (error) => {
+    if (error) throw error;
+});
