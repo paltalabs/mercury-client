@@ -1,0 +1,12 @@
+query MyQuery {
+  allFullAccountSubscriptions {
+    edges {
+      node {
+        id
+        nodeId
+        publickey
+        userId
+      }
+    }
+  }
+}
