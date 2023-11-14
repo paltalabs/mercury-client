@@ -1,0 +1,23 @@
+# Example variables:
+# {
+# contractId: "CAVKFXGNANLFPXORKNLZEFNHO2VIN54KCAILJKZZF3UUZ6OYDPVJ3V23"
+# }
+
+query getAllContractEvents($contractId: String) {
+  eventByContractId(
+    searchedContractId: $contractId 
+  ) {
+    edges {
+      node {
+        contractId
+        data
+        ledger
+        ledgerTimestamp
+        topic2
+        topic1
+        topic4
+        topic3
+      }
+    }
+  }
+}

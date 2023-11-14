@@ -1,0 +1,14 @@
+query MyQuery {
+  allLedgerEntrySubscriptions {
+    edges {
+      node {
+        id
+        contractId
+        keyXdr
+        maxSingleSize
+        startAt
+        userId
+      }
+    }
+  }
+}

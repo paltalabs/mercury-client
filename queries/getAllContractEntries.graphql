@@ -1,0 +1,14 @@
+query EntriesByContractId($contractId: String ){
+  entryUpdateByContractId(
+    contract: $contractId
+  ) {
+    nodes {
+      contractId
+      entryDurability
+      keyXdr
+      ledger
+      ledgerTimestamp
+      valueXdr
+    }
+  }
+}
