@@ -1,6 +1,6 @@
 const { axiosBackendInstance } = require("../utils/axios");
 
-const fetchSuscribeContractEvents = async ({
+const fetchSubscribeContractEvents = async ({
   contract_id,
   max_single_size,
   ...topics
@@ -13,7 +13,7 @@ const fetchSuscribeContractEvents = async ({
   return data;
 };
 
-const fetchSuscribeToLedgerEntries = async ({
+const fetchSubscribeToLedgerEntries = async ({
   contract_id,
   key_xdr,
   max_single_size,
@@ -26,19 +26,19 @@ const fetchSuscribeToLedgerEntries = async ({
   return data;
 };
 
-const fetchSuscribeToFullAccount = async ({ publickey }) => {
+const fetchSubscribeToFullAccount = async ({ publickey }) => {
   const { data } = await axiosBackendInstance.post(`/account`, { publickey });
   return data;
 };
 
-const fetchSuscribeToLedgerEntriesExpiration = async ({ hash_xdr }) => {
+const fetchSubscribeToLedgerEntriesExpiration = async ({ hash_xdr }) => {
   const { data } = await axiosBackendInstance.post(`/expiration`, { hash_xdr });
   return data;
 };
 
 module.exports = {
-  fetchSuscribeContractEvents,
-  fetchSuscribeToLedgerEntries,
-  fetchSuscribeToFullAccount,
-  fetchSuscribeToLedgerEntriesExpiration,
+  fetchSubscribeContractEvents,
+  fetchSubscribeToLedgerEntries,
+  fetchSubscribeToFullAccount,
+  fetchSubscribeToLedgerEntriesExpiration,
 };

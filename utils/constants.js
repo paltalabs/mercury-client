@@ -1,10 +1,10 @@
-const EVENT_TYPES = {
-  CONTRACT_EVENTS: 1,
-  LEDGER_ENTRIES: 2,
-  LEDGER_EXPIRATION: 3,
-  FULL_ACCOUNT: 4,
+const SUBSCRIPTION_TYPES = {
+  CONTRACT_EVENTS: "event",
+  LEDGER_ENTRIES: "entry",
+  LEDGER_EXPIRATION: "expiration",
+  FULL_ACCOUNT: "account",
 };
 
 module.exports = {
-  EVENT_TYPES,
+  SUBSCRIPTION_TYPES,
 };

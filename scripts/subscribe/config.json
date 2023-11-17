@@ -1,0 +1,25 @@
+{
+  "suscriptions": [
+    {
+      "name": "Router",
+      "events": ["event"],
+      "params": {
+        "contract_id": "CCIXZA5YCGAFDCSRNC4PS7OK2DGKIZFRQHBQPJKPHSHKSWXBW445DQU6"
+      }
+    },
+    {
+      "name": "Factory",
+      "events": ["event"],
+      "params": {
+        "contract_id": "CDQFXDLV7LLLZJCE3BBID5KFPXZADRKDLURCZ2CQXPPRFEEDRZ6DHY73"
+      }
+    },
+    {
+      "name": "Account0",
+      "events": ["account"],
+      "params": {
+        "publickey": "GDKXVNZXCJERWN7FSBOUPE5HKQ62LKYVZZYI4PMZHFVN6IWOFVRVI6LH"
+      }
+    }
+  ]
+}
