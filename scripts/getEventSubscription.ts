@@ -1,6 +1,6 @@
-const { runQuery } = require("./runQuery")
+import { runQuery } from "./runQuery";
 
-query = `
+const query = `
 query MyQuery {
   allContractEventSubscriptions {
     edges {
@@ -17,10 +17,8 @@ query MyQuery {
     }
   }
 }
-`
+`;
 
-variables = {
+const variables = {};
 
-}
-
-runQuery(query, variables)
+runQuery(query, variables);

@@ -1,5 +1,5 @@
-const sdk = require("stellar-sdk");
-const BigNumber = require("bignumber.js");
+import * as sdk from "stellar-sdk";
+import BigNumber from "bignumber.js";
 
 let server = new sdk.Server("https://horizon-testnet.stellar.org");
 
@@ -39,7 +39,7 @@ const kps = [
 // kp0 issues the assets
 const kp0 = kps[0];
 const [A, B] = orderAssets(
-  ...[new sdk.Asset("A", kp0.publicKey()), new sdk.Asset("B", kp0.publicKey())],
+  ...[new sdk.Asset("A", kp0.publicKey()), new sdk.Asset("B", kp0.publicKey())]
 );
 
 /// Establishes trustlines and funds `recipientKps` for all `assets`.
@@ -59,7 +59,7 @@ function distributeAssets(issuerKp, recipientKps, ...assets) {
             amount: "100000",
             asset: asset,
           }),
-        ]),
+        ])
       )
       .flat(2);
 
@@ -74,56 +74,55 @@ function preamble() {
 }
 
 const poolShareAsset = new sdk.LiquidityPoolAsset(
-    A,
-    B,
-    sdk.LiquidityPoolFeeV18,
+  A,
+  B,
+  sdk.LiquidityPoolFeeV18
+);
+
+function establishPoolTrustline(account, keypair, poolAsset) {
+  return server.submitTransaction(
+    buildTx(
+      account,
+      keypair,
+      sdk.Operation.changeTrust({
+        asset: poolAsset,
+        limit: "100000",
+      })
+    )
   );
-  
-  function establishPoolTrustline(account, keypair, poolAsset) {
-    return server.submitTransaction(
-      buildTx(
-        account,
-        keypair,
-        sdk.Operation.changeTrust({
-          asset: poolAsset,
-          limit: "100000",
-        }),
-      ),
-    );
-  }
+}
 
 const poolId = sdk
-    .getLiquidityPoolId(
-        "constant_product",
-        poolShareAsset.getLiquidityPoolParameters(),
-    )
-    .toString("hex");
+  .getLiquidityPoolId(
+    "constant_product",
+    poolShareAsset.getLiquidityPoolParameters()
+  )
+  .toString("hex");
 
 function addLiquidity(source, signer, poolId, maxReserveA, maxReserveB) {
-    const exactPrice = maxReserveA / maxReserveB;
-    const minPrice = exactPrice - exactPrice * 0.1;
-    const maxPrice = exactPrice + exactPrice * 0.1;
+  const exactPrice = maxReserveA / maxReserveB;
+  const minPrice = exactPrice - exactPrice * 0.1;
+  const maxPrice = exactPrice + exactPrice * 0.1;
 
-    return server.submitTransaction(
-        buildTx(
-            source,
-            signer,
-            sdk.Operation.liquidityPoolDeposit({
-                liquidityPoolId: poolId,
-                maxAmountA: maxReserveA,
-                maxAmountB: maxReserveB,
-                minPrice: minPrice.toFixed(7),
-                maxPrice: maxPrice.toFixed(7),
-            }),
-        ),
-    );
+  return server.submitTransaction(
+    buildTx(
+      source,
+      signer,
+      sdk.Operation.liquidityPoolDeposit({
+        liquidityPoolId: poolId,
+        maxAmountA: maxReserveA,
+        maxAmountB: maxReserveB,
+        minPrice: minPrice.toFixed(7),
+        maxPrice: maxPrice.toFixed(7),
+      })
+    )
+  );
 }
 
 function main() {
   return getAccounts()
     .then((accounts) => {
       return Promise.all(
-
         kps.map((kp, i) => {
           const acc = accounts[i];
           const depositA = ((i + 1) * 1000).toString();
@@ -132,7 +131,7 @@ function main() {
           return establishPoolTrustline(acc, kp, poolShareAsset)
             .then(() => addLiquidity(acc, kp, poolId, depositA, depositB))
             .then(() => getSpotPrice());
-        }),
+        })
       ).then(() => accounts);
     })
     .then((accounts) => {
@@ -156,7 +155,7 @@ function main() {
           return balance;
         })
         .then((balance) =>
-          removeLiquidity(accounts[1], kps[1], poolId, balance),
+          removeLiquidity(accounts[1], kps[1], poolId, balance)
         );
     })
     .then(() => getSpotPrice());
@@ -195,8 +194,8 @@ function removeLiquidity(source, signer, poolId, sharesAmount) {
             amount: sharesAmount,
             minAmountA: minReserveA.toFixed(7),
             minAmountB: minReserveB.toFixed(7),
-          }),
-        ),
+          })
+        )
       );
     });
 }

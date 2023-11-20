@@ -1,6 +1,6 @@
-const { runQuery } = require("./runQuery")
+import { runQuery } from "./runQuery";
 
-const contractAddress = process.env.CONTRACT_ADDRESS
+const contractAddress = process.env.CONTRACT_ADDRESS;
 
 const query = `
 query EntriesByContractId($id: String!) {
@@ -20,7 +20,7 @@ query EntriesByContractId($id: String!) {
 `;
 
 const variables = {
-    id: contractAddress
+  id: contractAddress,
 };
 
-runQuery(query, variables)
+runQuery(query, variables);
