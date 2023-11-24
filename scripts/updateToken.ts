@@ -15,6 +15,7 @@ const updateToken = async () => {
     const config = {
       headers: {
         "Content-Type": "application/json",
+        "Authorization": undefined
       },
     };
     const body = {
