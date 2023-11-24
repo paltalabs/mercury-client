@@ -137,14 +137,15 @@ function distributeAssets(
 // distributeAssets(kps[0], kps.slice(1), ...testAssets).then(()=>{ getBalancesFromPairs(kps)})
 
 // ------- Add Liquidity -----------
-function establishPoolTrustline(account: sdk.Account, keypair: sdk.Keypair, poolAsset: sdk.LiquidityPoolAsset) {
+function establishPoolTrustline(account: sdk.Account, keypair: sdk.Keypair, poolAsset: sdk.LiquidityPoolAsset, amount?: Number | string ) {
+  const limit = amount?amount.toString():"100000";
   return server.submitTransaction(
     buildTx(
       account,
       keypair,
       sdk.Operation.changeTrust({
         asset: poolAsset,
-        limit: "100000",
+        limit: limit,
       })
     )
   );
@@ -263,8 +264,21 @@ async function strictSendPayment(
 
   }
 }
+// signatures: Array[1] Some source accounts don't exist. Are you on the right network?
 getAccount(kps[1]).then(async (account) => {
+  // console.log("account:", account)
   try {
+ 
+    const changeTrustOp = sdk.Operation.changeTrust({
+      source: kps[2].publicKey(),
+      limit: "10000000000",
+      asset: allAssets[allAssets.length - 1],
+    })
+    const receiverAccount = await getAccount(kps[2])
+    let tx = buildTx(receiverAccount, kps[2], changeTrustOp);
+    // tx.sign(kps[2]);
+    await server.submitTransaction(tx);
+
     const strictSendPaymentResponse = await strictSendPayment(account, kps[1], kps[2].publicKey(), 100, 1)
     console.log("strictSendPaymentResponse:", strictSendPaymentResponse)
   } catch (error) {
@@ -275,9 +289,10 @@ getAccount(kps[1]).then(async (account) => {
     console.log("-----------------")
     const axiosError = error as AxiosError;  // Assuming the error is an AxiosError
     if (axiosError.response && axiosError.response.data && axiosError.response.data) {
-      console.log("Error:", axiosError.response.data);
+      const errorData = axiosError.response.data as any; // Asserting data as any
+      console.log("Error:", errorData.extras);
     } else {
-      console.log("Error:", axiosError);
+      console.log("else Error:", axiosError);
     }
   }
 })
