@@ -137,8 +137,8 @@ function distributeAssets(
 // distributeAssets(kps[0], kps.slice(1), ...testAssets).then(()=>{ getBalancesFromPairs(kps)})
 
 // ------- Add Liquidity -----------
-function establishPoolTrustline(account: sdk.Account, keypair: sdk.Keypair, poolAsset: sdk.LiquidityPoolAsset, amount?: Number | string ) {
-  const limit = amount?amount.toString():"100000";
+function establishPoolTrustline(account: sdk.Account, keypair: sdk.Keypair, poolAsset: sdk.LiquidityPoolAsset, amount?: Number | string) {
+  const limit = amount ? amount.toString() : "100000";
   return server.submitTransaction(
     buildTx(
       account,
@@ -264,11 +264,13 @@ async function strictSendPayment(
 
   }
 }
-// signatures: Array[1] Some source accounts don't exist. Are you on the right network?
-getAccount(kps[1]).then(async (account) => {
+
+// ---- Do path payment strict send -----
+
+async function doPathPaymentStrictSend(account: sdk.AccountResponse) {
   // console.log("account:", account)
   try {
- 
+
     const changeTrustOp = sdk.Operation.changeTrust({
       source: kps[2].publicKey(),
       limit: "10000000000",
@@ -295,4 +297,27 @@ getAccount(kps[1]).then(async (account) => {
       console.log("else Error:", axiosError);
     }
   }
+}
+// -------------------------------------------------------
+// -------------------------------------------------------
+// ----------  D O   E V E R Y T H I N G  ----------------
+// -------------------------------------------------------
+// -------------------------------------------------------
+
+createAccountsAndCheckBalances(kps).then(async () =>{
+  console.log("Distributing assets...")
+  // await distributeAssets(kps[0], kps.slice(1), ...testAssets)
+  
+  console.log("getBalancesFromPairs...")
+  // await getBalancesFromPairs(kps)
+  
+  console.log("establishPoolTrustlineAndAddLiquidity...")
+  // await establishPoolTrustlineAndAddLiquidity()
+  
+  console.log("doPathPaymentStrictSend...")
+  getAccount(kps[1]).then(async (account) => {
+    // console.log("account:", account)
+      doPathPaymentStrictSend(account)
+  })
 })
+
