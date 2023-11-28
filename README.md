@@ -84,3 +84,26 @@ Run script:
 ```bash
 node scripts/updateToken.js
 ```
+
+## Developing mercury-sdk Using yarn link
+
+To locally utilize `mercury-sdk` while working with containerized services, several steps must be followed to set up the environment.
+
+Modify the `relativePathToMercurySdk` variable in the `run.sh` file to align with your local machine's relative path to `mercury-sdk`. This adjustment will mount an additional volume containing the `mercury-sdk` code.
+
+Next, within the container, navigate to the `mercury-sdk` directory and link the package using the following commands:
+
+```bash
+cd /linked_sdk
+yarn link
+```
+
+Afterward, switch to the `/workspace` directory and execute:
+
+```bash
+yarn link "mercury-sdk"
+```
+
+### Notes on Package Development
+- The `tsconfig.json` file has been adjusted to monitor the new code in `mercury-sdk`.
+- It's essential to compile `mercury-sdk` each time it is modified, ensuring that the changes are reflected in `mercury-client`.
