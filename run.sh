@@ -7,6 +7,7 @@ currentDir=$(pwd)
 containerName=mercurySandbox
 imageName=node
 versionTag=18.18.2
+relativePathToMercurySdk=../../paltalabs/mercury-sdk
 
 # Display the command being executed
 echo "Command: $1"
@@ -25,6 +26,7 @@ fi
 
 # Run a new Docker container
 docker run --volume ${currentDir}/:/workspace \
+           --volume ${currentDir}/${relativePathToMercurySdk}:/linked_sdk \
            --name ${containerName} \
            --interactive \
            --publish 3000:3000 \
