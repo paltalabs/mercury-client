@@ -37,12 +37,23 @@ Inside the Node Docker containr, install packages:
 yarn
 ```
 
-3. Subscribe to ledger entries from contract defined on `.env`
+## Run scripts
+There are several scripts written in this repo.
+The main script for this repo is "do7txs" which executes 7 transactions on Stellar/Soroban. It also subscribe the address created in the script to Mercury.
+
+you can run it with:
+```
+yarn do7txs
+```
+
+Also, there are other scripts to play around:
+
+1. Subscribe to ledger entries from contract defined on `.env`
 ```
 node scripts/subscribeToEntries.js
 ```
 
-4. Run a query asking for ledger entries:
+2. Run a query asking for ledger entries:
 ```
 node scripts/getAllEntriesForContract.js
 ```

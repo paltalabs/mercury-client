@@ -4,14 +4,16 @@
   "main": "index.js",
   "license": "MIT",
   "scripts": {
+    "do7txs":"ts-node scripts/do-7-txs",
     "path-payments": "ts-node scripts/pathPayments/triggerPathPayment.ts"
   },
   "dependencies": {
     "@types/stellar-sdk": "^0.15.1",
     "axios": "^1.5.1",
     "dotenv": "^16.3.1",
-    "stellar-sdk": "^10.4.1",
-    "mercury-sdk":"^1.0.0"
+    "mercury-sdk": "^0.1.0",
+    "soroban-client": "^1.0.0-beta.4",
+    "stellar-sdk": "^10.4.1"
   },
   "devDependencies": {
     "ts-node": "^10.9.1",
