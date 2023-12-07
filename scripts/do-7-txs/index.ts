@@ -2,7 +2,7 @@
 
 // Create users (wallet addresses)
 
-import { createAddress, establishPoolTrustline, fundAccount, issueAndDistributeAsset, loadAccounts, saveAccounts,getBalancesFromPublicKey, establishPoolTrustlineAndAddLiquidity, createAsset, getXLMAsset } from "./utils";
+import { createAddress, establishPoolTrustline, fundAccount, issueAndDistributeAsset, loadAccounts, saveAccounts, getBalancesFromPublicKey, establishPoolTrustlineAndAddLiquidity, createAsset, getXLMAsset, payment } from "./utils";
 import { ApiErrorResponse, TestAccount } from "./types";
 
 async function main() {
@@ -34,10 +34,6 @@ async function main() {
     // Create a Stellar classic Asset (PALTA) and distribute
     // Account 0 is issuer
 
-    // Do payments
-    // Account 1 pay to Account 2
-    // Account 2 pay to Account 1
-
     // console.log("issuing assets")
     // const issuedAssetResponse = await issueAndDistributeAsset({
     //     name: "PALTA",
@@ -45,13 +41,44 @@ async function main() {
     //     destination: testAccounts.slice(1)
     // })
     // console.log(JSON.stringify(issuedAssetResponse))
+
+    const palta = createAsset("PALTA", testAccounts[0].publicKey)
+    const xlm = getXLMAsset()
+    await printBalances(testAccounts)
+
+    // Do payments
+    // Account 1 pay to Account 2
+    await payment({
+        from: testAccounts[1],
+        to: testAccounts[2],
+        amount: "100",
+        asset: palta
+    })
+    await payment({
+        from: testAccounts[1],
+        to: testAccounts[2],
+        amount: "100",
+        asset: xlm
+    })
+    // Account 2 pay to Account 1
+    await payment({
+        from: testAccounts[2],
+        to: testAccounts[1],
+        amount: "150",
+        asset: palta
+    })
+    await payment({
+        from: testAccounts[2],
+        to: testAccounts[1],
+        amount: "150",
+        asset: xlm
+    })
+
     await printBalances(testAccounts)
     // Do Add liquidity XLM/PALTA
     // Account 1 and Account 2
-    const assetA = createAsset("PALTA", testAccounts[0].publicKey)
-    const xlm = getXLMAsset()
     await establishPoolTrustlineAndAddLiquidity({
-        assetA,
+        assetA: palta,
         assetB: xlm,
         source: testAccounts[1],
         amountA: "100",
@@ -70,5 +97,12 @@ async function main() {
 main()
 
 async function printBalances(testAccounts: TestAccount[]) {
-    await Promise.all(testAccounts.map((testAccount) => getBalancesFromPublicKey(testAccount.publicKey)))
+    console.log("🥑🥑🥑🥑🥑🥑🥑🥑🥑🥑🥑")
+    console.log("🥑 PRINTING BALANCES 🥑")
+    console.log("🥑🥑🥑🥑🥑🥑🥑🥑🥑🥑🥑")
+    await Promise.all(testAccounts.map(async (testAccount, i) => {
+        console.log("Account:", i)
+        await getBalancesFromPublicKey(testAccount.publicKey)
+    })
+    )
 }

@@ -1,5 +1,5 @@
 import * as sdk from "stellar-sdk";
-import { ApiErrorResponse, TestAccount, establishPoolTrustlineAndAddLiquidityArgs, issueAndDistributeAssetArgs } from "./types";
+import { ApiErrorResponse, TestAccount, establishPoolTrustlineAndAddLiquidityArgs, issueAndDistributeAssetArgs, paymentArgs } from "./types";
 import { Keypair } from "soroban-client"
 import fs from "fs";
 import * as path from 'path';
@@ -204,4 +204,32 @@ export async function establishPoolTrustlineAndAddLiquidity(args: establishPoolT
   const sourceAccount = await getAccount(sourceKeypair)
   await establishPoolTrustline(sourceAccount, sourceKeypair, poolAsset)
   await liquidityPoolDeposit(sourceAccount, sourceKeypair, poolId, amountA, amountB)
+}
+
+export async function payment(args: paymentArgs) {
+  const ops = sdk.Operation.payment({
+    amount: args.amount,
+    asset: args.asset,
+    destination: args.to.publicKey
+  })
+  const sourceKeypair = sdk.Keypair.fromSecret(args.from.privateKey)
+  const source = await getAccount(sourceKeypair)
+  let tx = buildTx(source, sourceKeypair, ops)
+  try {
+    const submitTransactionResponse = await server.submitTransaction(tx)
+
+    return submitTransactionResponse
+  } catch (error) {
+    if (axios.isAxiosError(error) && error.response) {
+      const apiError = error.response.data as ApiErrorResponse;
+      if (apiError && apiError.extras && apiError.extras.result_codes) {
+        console.log('Result Codes:', apiError.extras.result_codes);
+        // Handle the specifics of the result codes here
+      } else {
+        console.log('Error does not have the expected format');
+      }
+    } else {
+      console.error('Non-API error occurred:', error);
+    }
+  }
 }

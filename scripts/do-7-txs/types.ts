@@ -10,6 +10,13 @@ export interface issueAndDistributeAssetArgs {
     destination?: TestAccount []
 }
 
+export interface paymentArgs {
+  from: TestAccount;
+  to: TestAccount;
+  amount: string;
+  asset: sdk.Asset
+}
+
 export interface establishPoolTrustlineAndAddLiquidityArgs {
     assetA: sdk.Asset,
     assetB: sdk.Asset,
