@@ -2,7 +2,7 @@
 
 // Create users (wallet addresses)
 
-import { createAddress, establishPoolTrustline, fundAccount, issueAndDistributeAsset, loadAccounts, saveAccounts, getBalancesFromPublicKey, establishPoolTrustlineAndAddLiquidity, createAsset, getXLMAsset, payment } from "./utils";
+import { createAddress, establishPoolTrustline, fundAccount, issueAndDistributeAsset, loadAccounts, saveAccounts, getBalancesFromPublicKey, establishPoolTrustlineAndAddLiquidity, createAsset, getXLMAsset, payment, liquidityPoolWithdraw, createLiquidityPoolAsset, pathPaymentStrictSend, pathPaymentStrictReceive } from "./utils";
 import { ApiErrorResponse, TestAccount } from "./types";
 
 async function main() {
@@ -44,55 +44,91 @@ async function main() {
 
     const palta = createAsset("PALTA", testAccounts[0].publicKey)
     const xlm = getXLMAsset()
-    await printBalances(testAccounts)
+    // await printBalances(testAccounts)
 
-    // Do payments
-    // Account 1 pay to Account 2
-    await payment({
-        from: testAccounts[1],
-        to: testAccounts[2],
-        amount: "100",
-        asset: palta
+    // // Do payments
+    // // Account 1 pay to Account 2
+    // await payment({
+    //     from: testAccounts[1],
+    //     to: testAccounts[2],
+    //     amount: "100",
+    //     asset: palta
+    // })
+    // await payment({
+    //     from: testAccounts[1],
+    //     to: testAccounts[2],
+    //     amount: "100",
+    //     asset: xlm
+    // })
+    // // Account 2 pay to Account 1
+    // await payment({
+    //     from: testAccounts[2],
+    //     to: testAccounts[1],
+    //     amount: "150",
+    //     asset: palta
+    // })
+    // await payment({
+    //     from: testAccounts[2],
+    //     to: testAccounts[1],
+    //     amount: "150",
+    //     asset: xlm
+    // })
+
+    // await printBalances(testAccounts)
+    // // Do Add liquidity XLM/PALTA
+    // // Account 1 and Account 2
+    // await establishPoolTrustlineAndAddLiquidity({
+    //     assetA: palta,
+    //     assetB: xlm,
+    //     source: testAccounts[1],
+    //     amountA: "100",
+    //     amountB: "200"
+    // })
+    // await establishPoolTrustlineAndAddLiquidity({
+    //     assetA: palta,
+    //     assetB: xlm,
+    //     source: testAccounts[2],
+    //     amountA: "100",
+    //     amountB: "200"
+    // })
+    // await printBalances(testAccounts)
+
+    // const lpXlmPalta = createLiquidityPoolAsset(xlm, palta)
+    // // Do Remove Liquidity Account 2
+    // const response = 
+    // await liquidityPoolWithdraw({
+    //     source: testAccounts[2],
+    //     amount: "100",
+    //     minAmountA: "10",
+    //     minAmountB: "20",
+    //     poolAsset: lpXlmPalta
+    // })
+    // console.log(response)
+
+    // // Do Path Payment
+    // // Account 2 pays XLM -> PALTA to Account 1
+    // const pathPaymenResponse = await pathPaymentStrictSend({
+    //     destination: testAccounts[1],
+    //     sendAsset: xlm,
+    //     sendAmount: "100",
+    //     destinationAsset: palta,
+    //     destinationMin: "10",
+    //     path: [palta],
+    //     source: testAccounts[2]
+    // })
+    // console.log(pathPaymenResponse)
+
+    const pathPaymenResponse2 = await pathPaymentStrictReceive({
+        destination: testAccounts[1],
+        sendAsset: xlm,
+        sendMax: "100",
+        destinationAsset: palta,
+        destinationAmount: "10",
+        path: [palta],
+        source: testAccounts[2]
+    
     })
-    await payment({
-        from: testAccounts[1],
-        to: testAccounts[2],
-        amount: "100",
-        asset: xlm
-    })
-    // Account 2 pay to Account 1
-    await payment({
-        from: testAccounts[2],
-        to: testAccounts[1],
-        amount: "150",
-        asset: palta
-    })
-    await payment({
-        from: testAccounts[2],
-        to: testAccounts[1],
-        amount: "150",
-        asset: xlm
-    })
-
-    await printBalances(testAccounts)
-    // Do Add liquidity XLM/PALTA
-    // Account 1 and Account 2
-    await establishPoolTrustlineAndAddLiquidity({
-        assetA: palta,
-        assetB: xlm,
-        source: testAccounts[1],
-        amountA: "100",
-        amountB: "200"
-    })
-    await printBalances(testAccounts)
-
-    // Do Swap XLM/PALTA
-
-    // Do Remove Liquidity Account 2
-
-    // Do Path Payment
-    // Account 2 pays XLM -> PALTA to Account 1
-
+    console.log(pathPaymenResponse2)
 }
 main()
 
@@ -100,9 +136,8 @@ async function printBalances(testAccounts: TestAccount[]) {
     console.log("🥑🥑🥑🥑🥑🥑🥑🥑🥑🥑🥑")
     console.log("🥑 PRINTING BALANCES 🥑")
     console.log("🥑🥑🥑🥑🥑🥑🥑🥑🥑🥑🥑")
-    await Promise.all(testAccounts.map(async (testAccount, i) => {
+    for (let i = 0; i < testAccounts.length; i++) {
         console.log("Account:", i)
-        await getBalancesFromPublicKey(testAccount.publicKey)
-    })
-    )
+        await getBalancesFromPublicKey(testAccounts[i].publicKey)
+    }
 }

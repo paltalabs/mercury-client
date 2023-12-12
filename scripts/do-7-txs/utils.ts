@@ -1,5 +1,5 @@
 import * as sdk from "stellar-sdk";
-import { ApiErrorResponse, TestAccount, establishPoolTrustlineAndAddLiquidityArgs, issueAndDistributeAssetArgs, paymentArgs } from "./types";
+import { ApiErrorResponse, TestAccount, establishPoolTrustlineAndAddLiquidityArgs, getLpBalanceArgs, issueAndDistributeAssetArgs, liquidityPoolWithdrawArgs, pathPaymentStrictReceiveArgs, pathPaymentStrictSendArgs, paymentArgs } from "./types";
 import { Keypair } from "soroban-client"
 import fs from "fs";
 import * as path from 'path';
@@ -232,4 +232,103 @@ export async function payment(args: paymentArgs) {
       console.error('Non-API error occurred:', error);
     }
   }
+}
+
+export async function liquidityPoolWithdraw (args: liquidityPoolWithdrawArgs){
+  
+  const ops = sdk.Operation.liquidityPoolWithdraw({
+    liquidityPoolId: getLiquidityPoolId(args.poolAsset),
+    amount: args.amount,
+    minAmountA: args.minAmountA,
+    minAmountB: args.minAmountB,
+  })
+  const sourceKeypair = sdk.Keypair.fromSecret(args.source.privateKey)
+  const source = await getAccount(sourceKeypair)
+  let tx = buildTx(source, sourceKeypair, ops)
+  try {
+    const submitTransactionResponse = await server.submitTransaction(tx)
+
+    return submitTransactionResponse
+  } catch (error) {
+    if (axios.isAxiosError(error) && error.response) {
+      const apiError = error.response.data as ApiErrorResponse;
+      if (apiError && apiError.extras && apiError.extras.result_codes) {
+        console.log('Result Codes:', apiError.extras.result_codes);
+        // Handle the specifics of the result codes here
+      } else {
+        console.log('Error does not have the expected format');
+      }
+    } else {
+      console.error('Non-API error occurred:', error);
+    }
+  }
+}
+
+export async function getLpBalance (args: getLpBalanceArgs) {
+  
+}
+
+// Path Payment Strict Send
+export async function pathPaymentStrictSend (args: pathPaymentStrictSendArgs) {
+  const ops = sdk.Operation.pathPaymentStrictSend({
+    sendAsset: args.sendAsset,
+    sendAmount: args.sendAmount,
+    destAsset: args.destinationAsset,
+    destMin: args.destinationMin,
+    destination: args.destination.publicKey,
+    path: args.path
+  })
+  const sourceKeypair = sdk.Keypair.fromSecret(args.source.privateKey)
+  const source = await getAccount(sourceKeypair)
+  let tx = buildTx(source, sourceKeypair, ops)
+  try {
+    const submitTransactionResponse = await server.submitTransaction(tx)
+
+    return submitTransactionResponse
+  } catch (error) {
+    if (axios.isAxiosError(error) && error.response) {
+      const apiError = error.response.data as ApiErrorResponse;
+      if (apiError && apiError.extras && apiError.extras.result_codes) {
+        console.log('Result Codes:', apiError.extras.result_codes);
+        // Handle the specifics of the result codes here
+      } else {
+        console.log('Error does not have the expected format');
+      }
+    } else {
+      console.error('Non-API error occurred:', error);
+    }
+  }
+}
+
+// Path Payment Strict Receive
+export async function pathPaymentStrictReceive (args: pathPaymentStrictReceiveArgs) {
+  const ops = sdk.Operation.pathPaymentStrictReceive({
+    sendAsset: args.sendAsset,
+    sendMax: args.sendMax,
+    destAsset: args.destinationAsset,
+    destAmount: args.destinationAmount,
+    destination: args.destination.publicKey,
+    path: args.path
+  })
+  const sourceKeypair = sdk.Keypair.fromSecret(args.source.privateKey)
+  const source = await getAccount(sourceKeypair)
+  let tx = buildTx(source, sourceKeypair, ops)
+  try {
+    const submitTransactionResponse = await server.submitTransaction(tx)
+
+    return submitTransactionResponse
+  } catch (error) {
+    if (axios.isAxiosError(error) && error.response) {
+      const apiError = error.response.data as ApiErrorResponse;
+      if (apiError && apiError.extras && apiError.extras.result_codes) {
+        console.log('Result Codes:', apiError.extras.result_codes);
+        // Handle the specifics of the result codes here
+      } else {
+        console.log('Error does not have the expected format');
+      }
+    } else {
+      console.error('Non-API error occurred:', error);
+    }
+  }
+
 }

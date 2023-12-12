@@ -1,13 +1,13 @@
 import * as sdk from "stellar-sdk";
 
 export interface TestAccount {
-    privateKey: string;
-    publicKey: string;
+  privateKey: string;
+  publicKey: string;
 }
 export interface issueAndDistributeAssetArgs {
-    name: string;
-    issuer: TestAccount;
-    destination?: TestAccount []
+  name: string;
+  issuer: TestAccount;
+  destination?: TestAccount[]
 }
 
 export interface paymentArgs {
@@ -18,21 +18,54 @@ export interface paymentArgs {
 }
 
 export interface establishPoolTrustlineAndAddLiquidityArgs {
-    assetA: sdk.Asset,
-    assetB: sdk.Asset,
-    source: TestAccount,
-    amountA?: string,
-    amountB?: string
+  assetA: sdk.Asset,
+  assetB: sdk.Asset,
+  source: TestAccount,
+  amountA?: string,
+  amountB?: string
+}
+
+export interface liquidityPoolWithdrawArgs {
+  poolAsset: sdk.LiquidityPoolAsset,
+  source: TestAccount,
+  amount: string,
+  minAmountA: string,
+  minAmountB: string
+}
+
+export interface getLpBalanceArgs {
+  source: TestAccount,
+  poolAsset: sdk.LiquidityPoolAsset
 }
 
 export interface ApiErrorResponse {
-    extras: {
-      result_codes: {
-        // Define the properties of result_codes here
-        // For example:
-        transaction: string;
-        operations: string[];
-      };
+  extras: {
+    result_codes: {
+      // Define the properties of result_codes here
+      // For example:
+      transaction: string;
+      operations: string[];
     };
-    // Include any other properties that might be in the error response
-  }
+  };
+  // Include any other properties that might be in the error response
+}
+
+export interface pathPaymentStrictSendArgs {
+  destination: TestAccount;
+  sendAsset: sdk.Asset;
+  sendAmount: string;
+  destinationAsset: sdk.Asset;
+  destinationMin: string;
+  path: sdk.Asset[];
+  source: TestAccount;
+}
+
+export interface pathPaymentStrictReceiveArgs {
+  destination: TestAccount;
+  sendAsset: sdk.Asset;
+  sendMax: string;
+  destinationAsset: sdk.Asset;
+  destinationAmount: string;
+  path: sdk.Asset[];
+  source: TestAccount;
+}
