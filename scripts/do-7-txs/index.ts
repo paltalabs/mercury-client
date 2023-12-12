@@ -4,6 +4,7 @@
 
 import { createAddress, establishPoolTrustline, fundAccount, issueAndDistributeAsset, loadAccounts, saveAccounts, getBalancesFromPublicKey, establishPoolTrustlineAndAddLiquidity, createAsset, getXLMAsset, payment, liquidityPoolWithdraw, createLiquidityPoolAsset, pathPaymentStrictSend, pathPaymentStrictReceive } from "./utils";
 import { ApiErrorResponse, TestAccount } from "./types";
+import {Mercury} from "mercury-sdk"
 
 async function main() {
     // Save them on results/testAccounts.json
@@ -30,7 +31,24 @@ async function main() {
     console.log("testAccounts:", testAccounts)
 
     // TODO: Subscribe to mercury
+    if (process.env.MERCURY_BACKEND_ENDPOINT == undefined ||
+        process.env.MERCURY_GRAPHQL_ENDPOINT == undefined ||
+        process.env.MERCURY_TESTER_EMAIL == undefined ||
+        process.env.MERCURY_TESTER_PASSWORD == undefined) {
+        console.error("Environment variables are empty")
+        return
+    }
+    const mercuryInstance = new Mercury({
+        backendEndpoint: process.env.MERCURY_BACKEND_ENDPOINT ,
+        graphqlEndpoint: process.env.MERCURY_GRAPHQL_ENDPOINT ,
+        email: process.env.MERCURY_TESTER_EMAIL ,
+        password: process.env.MERCURY_TESTER_PASSWORD 
+    })
 
+    // Subscribe to accounts
+    await Promise.all(testAccounts.map(async (acc) => {
+        await mercuryInstance.subscribeToFullAccount({ publicKey: acc.publicKey });
+    }));
     // Create a Stellar classic Asset (PALTA) and distribute
     // Account 0 is issuer
 
@@ -118,17 +136,17 @@ async function main() {
     // })
     // console.log(pathPaymenResponse)
 
-    const pathPaymenResponse2 = await pathPaymentStrictReceive({
-        destination: testAccounts[1],
-        sendAsset: xlm,
-        sendMax: "100",
-        destinationAsset: palta,
-        destinationAmount: "10",
-        path: [palta],
-        source: testAccounts[2]
+    // const pathPaymenResponse2 = await pathPaymentStrictReceive({
+    //     destination: testAccounts[1],
+    //     sendAsset: xlm,
+    //     sendMax: "100",
+    //     destinationAsset: palta,
+    //     destinationAmount: "10",
+    //     path: [palta],
+    //     source: testAccounts[2]
     
-    })
-    console.log(pathPaymenResponse2)
+    // })
+    // console.log(pathPaymenResponse2)
 }
 main()
 
