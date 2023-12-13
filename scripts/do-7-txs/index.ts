@@ -2,7 +2,7 @@
 
 // Create users (wallet addresses)
 
-import { createAddress, establishPoolTrustline, fundAccount, issueAndDistributeAsset, loadAccounts, saveAccounts, getBalancesFromPublicKey, establishPoolTrustlineAndAddLiquidity, createAsset, getXLMAsset, payment, liquidityPoolWithdraw, createLiquidityPoolAsset, pathPaymentStrictSend, pathPaymentStrictReceive } from "./utils";
+import { createAddress, establishPoolTrustline, fundAccount, issueAndDistributeAsset, loadAccounts, saveAccounts, getBalancesFromPublicKey, establishPoolTrustlineAndAddLiquidity, createAsset, getXLMAsset, payment, liquidityPoolWithdraw, createLiquidityPoolAsset, pathPaymentStrictSend, pathPaymentStrictReceive, addLiquiditySoroswap, getContractIdStellarAsset, deployStellarAssetContract } from "./utils";
 import { ApiErrorResponse, TestAccount } from "./types";
 import {Mercury} from "mercury-sdk"
 
@@ -46,9 +46,10 @@ async function main() {
     })
 
     // Subscribe to accounts
-    await Promise.all(testAccounts.map(async (acc) => {
-        await mercuryInstance.subscribeToFullAccount({ publicKey: acc.publicKey });
-    }));
+    // await Promise.all(testAccounts.map(async (acc) => {
+    //     await mercuryInstance.subscribeToFullAccount({ publicKey: acc.publicKey });
+    // }));
+
     // Create a Stellar classic Asset (PALTA) and distribute
     // Account 0 is issuer
 
@@ -61,6 +62,9 @@ async function main() {
     // console.log(JSON.stringify(issuedAssetResponse))
 
     const palta = createAsset("PALTA", testAccounts[0].publicKey)
+    getContractIdStellarAsset({asset: palta})
+    // await deployStellarAssetContract({asset: palta, source: testAccounts[0]})
+
     const xlm = getXLMAsset()
     // await printBalances(testAccounts)
 
@@ -147,6 +151,21 @@ async function main() {
     
     // })
     // console.log(pathPaymenResponse2)
+    try {
+
+        await addLiquiditySoroswap({
+            tokenA: await getContractIdStellarAsset({asset: palta}),
+            tokenB: await getContractIdStellarAsset({asset: xlm}),
+            amountADesired: "10", 
+            amountBDesired: "10",
+            amountAMin: "1",
+            amountBMin: "1",
+            source: testAccounts[1],
+            to: testAccounts[1],
+        })
+    } catch (error) {
+        console.log(error)
+    }
 }
 main()
 

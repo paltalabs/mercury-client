@@ -69,3 +69,23 @@ export interface pathPaymentStrictReceiveArgs {
   path: sdk.Asset[];
   source: TestAccount;
 }
+
+export interface addLiquiditySoroswapArgs {
+  tokenA: string;
+  tokenB: string;
+  amountADesired: string; 
+  amountBDesired: string;
+  amountAMin: string;
+  amountBMin: string;
+  source: TestAccount;
+  to: TestAccount;
+}
+
+export interface getContractIdStellarAssetArgs {
+  asset: sdk.Asset;
+}
+
+export interface deployStellarAssetContractArgs {
+  asset: sdk.Asset;
+  source: TestAccount;
+}

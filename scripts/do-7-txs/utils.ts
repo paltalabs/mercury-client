@@ -1,12 +1,14 @@
 import * as sdk from "stellar-sdk";
-import { ApiErrorResponse, TestAccount, establishPoolTrustlineAndAddLiquidityArgs, getLpBalanceArgs, issueAndDistributeAssetArgs, liquidityPoolWithdrawArgs, pathPaymentStrictReceiveArgs, pathPaymentStrictSendArgs, paymentArgs } from "./types";
+import { ApiErrorResponse, TestAccount, addLiquiditySoroswapArgs, deployStellarAssetContractArgs, establishPoolTrustlineAndAddLiquidityArgs, getContractIdStellarAssetArgs, getLpBalanceArgs, issueAndDistributeAssetArgs, liquidityPoolWithdrawArgs, pathPaymentStrictReceiveArgs, pathPaymentStrictSendArgs, paymentArgs } from "./types";
 import { Keypair } from "soroban-client"
 import fs from "fs";
 import * as path from 'path';
 import axios from "axios";
 
-let server = new sdk.Server("https://horizon-testnet.stellar.org");
+let server = new sdk.Horizon.Server("https://horizon-testnet.stellar.org");
 let friendbotURI = `https://friendbot.stellar.org?addr=`
+let routerContractAddress = "CCPAHC7VTNCAX7FA3NAXX2F7ILGLSTL7757OZ7YPABB22LNALLMUTGPN"
+let sorobanServer = new sdk.SorobanRpc.Server("https://soroban-testnet.stellar.org");
 
 /// Helps simplify creating & signing a transaction.
 export function buildTx(source: sdk.Account, signer: sdk.Keypair, ...ops: sdk.xdr.Operation[]) {
@@ -234,8 +236,8 @@ export async function payment(args: paymentArgs) {
   }
 }
 
-export async function liquidityPoolWithdraw (args: liquidityPoolWithdrawArgs){
-  
+export async function liquidityPoolWithdraw(args: liquidityPoolWithdrawArgs) {
+
   const ops = sdk.Operation.liquidityPoolWithdraw({
     liquidityPoolId: getLiquidityPoolId(args.poolAsset),
     amount: args.amount,
@@ -264,12 +266,12 @@ export async function liquidityPoolWithdraw (args: liquidityPoolWithdrawArgs){
   }
 }
 
-export async function getLpBalance (args: getLpBalanceArgs) {
-  
+export async function getLpBalance(args: getLpBalanceArgs) {
+
 }
 
 // Path Payment Strict Send
-export async function pathPaymentStrictSend (args: pathPaymentStrictSendArgs) {
+export async function pathPaymentStrictSend(args: pathPaymentStrictSendArgs) {
   const ops = sdk.Operation.pathPaymentStrictSend({
     sendAsset: args.sendAsset,
     sendAmount: args.sendAmount,
@@ -301,7 +303,7 @@ export async function pathPaymentStrictSend (args: pathPaymentStrictSendArgs) {
 }
 
 // Path Payment Strict Receive
-export async function pathPaymentStrictReceive (args: pathPaymentStrictReceiveArgs) {
+export async function pathPaymentStrictReceive(args: pathPaymentStrictReceiveArgs) {
   const ops = sdk.Operation.pathPaymentStrictReceive({
     sendAsset: args.sendAsset,
     sendMax: args.sendMax,
@@ -332,3 +334,108 @@ export async function pathPaymentStrictReceive (args: pathPaymentStrictReceiveAr
   }
 
 }
+
+export async function addLiquiditySoroswap(args: addLiquiditySoroswapArgs) {
+  // This function executes the add_liquidity function of the soroswap router contract
+  const health = await sorobanServer.getHealth()
+  console.log("health:", health)
+
+  const account = await sorobanServer.getAccount(args.source.publicKey)
+  const routerContract = new sdk.Contract(routerContractAddress)
+  const fee = sdk.BASE_FEE
+  const params = [
+    args.tokenA,
+    args.tokenB,
+    Number(args.amountADesired),
+    Number(args.amountBDesired),
+    Number(args.amountAMin),
+    Number(args.amountBMin),
+    args.to.publicKey,
+    getCurrentTimePlusOneHour(),
+  ]
+
+  // const quoteParams = [
+  //   10, // amount in
+  //   100, // reserve_in
+  //   200, // reserve_out
+  // ]
+  // const scValQuoteParams = quoteParams.map((param) => sdk.nativeToScVal(param))
+
+  let quoteParams = {
+    amount_a: 10,
+    reserve_a: 100,
+    reserve_b: 200,
+  }
+  const scValQuoteParams = Object.values(quoteParams).map((param) => sdk.nativeToScVal(param, {type: "i128"}))
+
+  const scValParams = params.map((param) => sdk.nativeToScVal(param))
+  const transaction = new sdk.TransactionBuilder(account, { fee })
+    .setNetworkPassphrase(sdk.Networks.TESTNET)
+    .setTimeout(30)
+    // .addOperation(routerContract.call("add_liquidity", ...scValParams))
+    .addOperation(routerContract.call("router_quote", ...scValQuoteParams))
+    .build();
+
+  const preparedTransaction = await sorobanServer.prepareTransaction(transaction)
+  const sourceKeypair = sdk.Keypair.fromSecret(args.source.privateKey)
+  preparedTransaction.sign(sourceKeypair)
+
+
+  try {
+    const result = await sorobanServer.sendTransaction(preparedTransaction);
+    // print stringified result
+    console.log(JSON.stringify(result, null, 2));
+  } catch (error) {
+    // handle the error
+    console.error(error);
+  }
+}
+
+export async function getContractIdStellarAsset(args: getContractIdStellarAssetArgs) {
+  // return args.asset.contractId()  
+  // @ts-ignore
+  const contractId = args.asset.contractId(sdk.Networks.TESTNET)
+  console.log("contractId:", contractId)
+  return contractId
+
+}
+
+export async function deployStellarAssetContract(args: deployStellarAssetContractArgs) {
+  const source = await sorobanServer.getAccount(args.source.publicKey)
+  const sourceKeypair = sdk.Keypair.fromSecret(args.source.privateKey)
+  
+  const op = sdk.Operation.createStellarAssetContract({ asset: args.asset })
+  const tx = new sdk.TransactionBuilder(source, { fee: sdk.BASE_FEE })
+  .setNetworkPassphrase(sdk.Networks.TESTNET)
+  .setTimeout(30)
+  .addOperation(op)
+  .build();
+  tx.sign(sourceKeypair)
+  const preparedTransaction = await sorobanServer.prepareTransaction(tx)
+  preparedTransaction.sign(sourceKeypair)
+
+  try {
+    const result = await sorobanServer.sendTransaction(preparedTransaction);
+    // print stringified result
+    console.log(JSON.stringify(result, null, 2));
+    return result
+  } catch (error) {
+    // handle the error
+    console.error(error);
+  }
+  // const contractId = await sorobanServer.getContractId(asset)
+
+
+
+
+}
+
+export const getCurrentTimePlusOneHour = () => {
+  // Get the current time in milliseconds
+  const now = Date.now();
+
+  // Add one hour (3600000 milliseconds)
+  const oneHourLater = now + 3600000;
+
+  return oneHourLater;
+};
