@@ -2,9 +2,10 @@
 
 // Create users (wallet addresses)
 
-import { createAddress, establishPoolTrustline, fundAccount, issueAndDistributeAsset, loadAccounts, saveAccounts, getBalancesFromPublicKey, establishPoolTrustlineAndAddLiquidity, createAsset, getXLMAsset, payment, liquidityPoolWithdraw, createLiquidityPoolAsset, pathPaymentStrictSend, pathPaymentStrictReceive, addLiquiditySoroswap, getContractIdStellarAsset, deployStellarAssetContract } from "./utils";
+import { createAddress, establishPoolTrustline, fundAccount, issueAndDistributeAsset, loadAccounts, saveAccounts, getBalancesFromPublicKey, establishPoolTrustlineAndAddLiquidity, createAsset, getXLMAsset, payment, liquidityPoolWithdraw, createLiquidityPoolAsset, pathPaymentStrictSend, pathPaymentStrictReceive, addLiquiditySoroswap, getContractIdStellarAsset, deployStellarAssetContract, uploadTokenContractWasm, createTokenContract } from "./utils";
 import { ApiErrorResponse, TestAccount } from "./types";
 import {Mercury} from "mercury-sdk"
+import { test } from "node:test";
 
 async function main() {
     // Save them on results/testAccounts.json
@@ -151,21 +152,30 @@ async function main() {
     
     // })
     // console.log(pathPaymenResponse2)
-    try {
 
-        await addLiquiditySoroswap({
-            tokenA: await getContractIdStellarAsset({asset: palta}),
-            tokenB: await getContractIdStellarAsset({asset: xlm}),
-            amountADesired: "10", 
-            amountBDesired: "10",
-            amountAMin: "1",
-            amountBMin: "1",
-            source: testAccounts[1],
-            to: testAccounts[1],
-        })
-    } catch (error) {
-        console.log(error)
-    }
+    // the second time throws error:
+    //     HostError: Error(Storage, ExistingValue)
+
+    // const uploadTokenContractWasmResponse = await uploadTokenContractWasm(testAccounts[0])
+    // console.log("uploadTokenContractWasmResponse:",uploadTokenContractWasmResponse)
+
+
+    const creatTokenContractResponse = await createTokenContract(testAccounts[0])
+    console.log("creatTokenContractResponse:",creatTokenContractResponse)
+    // try {
+    //     await addLiquiditySoroswap({
+    //         tokenA: await getContractIdStellarAsset({asset: palta}),
+    //         tokenB: await getContractIdStellarAsset({asset: xlm}),
+    //         amountADesired: "10", 
+    //         amountBDesired: "10",
+    //         amountAMin: "1",
+    //         amountBMin: "1",
+    //         source: testAccounts[1],
+    //         to: testAccounts[1],
+    //     })
+    // } catch (error) {
+    //     console.log(error)
+    // }
 }
 main()
 

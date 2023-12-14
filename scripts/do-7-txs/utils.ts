@@ -353,27 +353,31 @@ export async function addLiquiditySoroswap(args: addLiquiditySoroswapArgs) {
     args.to.publicKey,
     getCurrentTimePlusOneHour(),
   ]
+  const scValParams = [
+    new sdk.Address(args.tokenA).toScVal(),
+    new sdk.Address(args.tokenB).toScVal(),
+    sdk.nativeToScVal(Number(args.amountADesired), { type: "i128" }),
+    sdk.nativeToScVal(Number(args.amountBDesired), { type: "i128" }),
+    sdk.nativeToScVal(Number(args.amountAMin), { type: "i128" }),
+    sdk.nativeToScVal(Number(args.amountBMin), { type: "i128" }),
+    new sdk.Address(args.to.publicKey).toScVal(),
+    sdk.nativeToScVal(Number(getCurrentTimePlusOneHour()), { type: "u64" }),
+  ]
 
-  // const quoteParams = [
-  //   10, // amount in
-  //   100, // reserve_in
-  //   200, // reserve_out
-  // ]
-  // const scValQuoteParams = quoteParams.map((param) => sdk.nativeToScVal(param))
-
-  let quoteParams = {
-    amount_a: 10,
-    reserve_a: 100,
-    reserve_b: 200,
-  }
-  const scValQuoteParams = Object.values(quoteParams).map((param) => sdk.nativeToScVal(param, {type: "i128"}))
-
-  const scValParams = params.map((param) => sdk.nativeToScVal(param))
+  // const scValParams = Object.values(params).map(
+  //   (param) => {
+  //     if (typeof param === "number") {
+  //       return sdk.nativeToScVal(param, {type: "i128"})
+  //     } else {
+  //       return new sdk.Address(param).toScVal()
+  //     }
+  //   })
+  console.log("scValParams:", scValParams)
   const transaction = new sdk.TransactionBuilder(account, { fee })
     .setNetworkPassphrase(sdk.Networks.TESTNET)
     .setTimeout(30)
-    // .addOperation(routerContract.call("add_liquidity", ...scValParams))
-    .addOperation(routerContract.call("router_quote", ...scValQuoteParams))
+    .addOperation(routerContract.call("add_liquidity", ...scValParams))
+    // .addOperation(routerContract.call("router_quote", ...scValQuoteParams))
     .build();
 
   const preparedTransaction = await sorobanServer.prepareTransaction(transaction)
@@ -403,13 +407,13 @@ export async function getContractIdStellarAsset(args: getContractIdStellarAssetA
 export async function deployStellarAssetContract(args: deployStellarAssetContractArgs) {
   const source = await sorobanServer.getAccount(args.source.publicKey)
   const sourceKeypair = sdk.Keypair.fromSecret(args.source.privateKey)
-  
+
   const op = sdk.Operation.createStellarAssetContract({ asset: args.asset })
   const tx = new sdk.TransactionBuilder(source, { fee: sdk.BASE_FEE })
-  .setNetworkPassphrase(sdk.Networks.TESTNET)
-  .setTimeout(30)
-  .addOperation(op)
-  .build();
+    .setNetworkPassphrase(sdk.Networks.TESTNET)
+    .setTimeout(30)
+    .addOperation(op)
+    .build();
   tx.sign(sourceKeypair)
   const preparedTransaction = await sorobanServer.prepareTransaction(tx)
   preparedTransaction.sign(sourceKeypair)
@@ -430,6 +434,81 @@ export async function deployStellarAssetContract(args: deployStellarAssetContrac
 
 }
 
+export async function uploadTokenContractWasm(signer: TestAccount) {
+  // scripts/do-7-txs/soroban_token_contract.optimized.wasm
+  const wasmBuffer = fs.readFileSync("/workspace/scripts/do-7-txs/soroban_token_contract.optimized.wasm")
+  const hf = sdk.xdr.HostFunction.hostFunctionTypeUploadContractWasm(
+    wasmBuffer
+  )
+  const op = sdk.Operation.uploadContractWasm({wasm: wasmBuffer})
+  const source = await sorobanServer.getAccount(signer.publicKey)
+  const sourceKeypair = sdk.Keypair.fromSecret(signer.privateKey)
+
+  let tx = new sdk.TransactionBuilder(source, { fee: sdk.BASE_FEE })
+    .setNetworkPassphrase(sdk.Networks.TESTNET)
+    .setTimeout(30)
+    .addOperation(op)
+    .build();
+
+  try {
+    // const submitTransactionResponse = await server.submitTransaction(tx)
+    const preparedTransaction = await sorobanServer.prepareTransaction(tx)
+    preparedTransaction.sign(sourceKeypair)
+    const submitTransactionResponse = await sorobanServer.sendTransaction(preparedTransaction);
+    return submitTransactionResponse
+  } catch (error) { 
+    if (axios.isAxiosError(error) && error.response) {
+      const apiError = error.response.data as ApiErrorResponse;
+      if (apiError && apiError.extras && apiError.extras.result_codes) {
+        console.log('Result Codes:', apiError.extras.result_codes);
+        // Handle the specifics of the result codes here
+      } else {
+        console.log("error:", error)
+        console.log('Error does not have the expected format');
+      }
+    } else {
+      console.error('Non-API error occurred:', error);
+    }
+  }
+}
+
+export async function createTokenContract(signer: TestAccount) {
+  const wasmBuffer = fs.readFileSync("/workspace/scripts/do-7-txs/soroban_token_contract.optimized.wasm")
+  const hash = sdk.hash(wasmBuffer)
+  const op = sdk.Operation.createCustomContract({
+    address: new sdk.Address(signer.publicKey) ,
+    wasmHash: hash,
+  })
+  const source = await sorobanServer.getAccount(signer.publicKey)
+  const sourceKeypair = sdk.Keypair.fromSecret(signer.privateKey)
+
+  let tx = new sdk.TransactionBuilder(source, { fee: sdk.BASE_FEE })
+    .setNetworkPassphrase(sdk.Networks.TESTNET)
+    .setTimeout(30)
+    .addOperation(op)
+    .build();
+
+  try {
+    const preparedTransaction = await sorobanServer.prepareTransaction(tx)
+    preparedTransaction.sign(sourceKeypair)
+    const submitTransactionResponse = await sorobanServer.sendTransaction(preparedTransaction);
+    return submitTransactionResponse
+  } catch (error) {
+    if (axios.isAxiosError(error) && error.response) {
+      const apiError = error.response.data as ApiErrorResponse;
+      if (apiError && apiError.extras && apiError.extras.result_codes) {
+        console.log('Result Codes:', apiError.extras.result_codes);
+        // Handle the specifics of the result codes here
+      } else {
+        console.log("error:", error)
+        console.log('Error does not have the expected format');
+      }
+    } else {
+      console.error('Non-API error occurred:', error);
+    }
+  
+  }
+}
 export const getCurrentTimePlusOneHour = () => {
   // Get the current time in milliseconds
   const now = Date.now();
