@@ -1,5 +1,5 @@
 import * as sdk from "stellar-sdk";
-import { ApiErrorResponse, TestAccount, addLiquiditySoroswapArgs, deployStellarAssetContractArgs, establishPoolTrustlineAndAddLiquidityArgs, getContractIdStellarAssetArgs, getLpBalanceArgs, issueAndDistributeAssetArgs, liquidityPoolWithdrawArgs, pathPaymentStrictReceiveArgs, pathPaymentStrictSendArgs, paymentArgs } from "./types";
+import { ApiErrorResponse, TestAccount, addLiquiditySoroswapArgs, deployStellarAssetContractArgs, establishPoolTrustlineAndAddLiquidityArgs, getContractIdStellarAssetArgs, getLpBalanceArgs, initializeTokenContractArgs, issueAndDistributeAssetArgs, liquidityPoolWithdrawArgs, mintTokensArgs, pathPaymentStrictReceiveArgs, pathPaymentStrictSendArgs, paymentArgs } from "./types";
 import { Keypair } from "soroban-client"
 import fs from "fs";
 import * as path from 'path';
@@ -7,7 +7,7 @@ import axios from "axios";
 
 let server = new sdk.Horizon.Server("https://horizon-testnet.stellar.org");
 let friendbotURI = `https://friendbot.stellar.org?addr=`
-let routerContractAddress = "CCPAHC7VTNCAX7FA3NAXX2F7ILGLSTL7757OZ7YPABB22LNALLMUTGPN"
+let routerContractAddress = "CAGC46HNBMEZJP62PPTSUBUCS7LWBS5QLRNFSRCA4Q2A57YSPYBKGSTM"
 let sorobanServer = new sdk.SorobanRpc.Server("https://soroban-testnet.stellar.org");
 
 /// Helps simplify creating & signing a transaction.
@@ -343,16 +343,9 @@ export async function addLiquiditySoroswap(args: addLiquiditySoroswapArgs) {
   const account = await sorobanServer.getAccount(args.source.publicKey)
   const routerContract = new sdk.Contract(routerContractAddress)
   const fee = sdk.BASE_FEE
-  const params = [
-    args.tokenA,
-    args.tokenB,
-    Number(args.amountADesired),
-    Number(args.amountBDesired),
-    Number(args.amountAMin),
-    Number(args.amountBMin),
-    args.to.publicKey,
-    getCurrentTimePlusOneHour(),
-  ]
+
+  console.log("number getCurrentTimePlusOneHour:", getCurrentTimePlusOneHour())
+
   const scValParams = [
     new sdk.Address(args.tokenA).toScVal(),
     new sdk.Address(args.tokenB).toScVal(),
@@ -361,18 +354,12 @@ export async function addLiquiditySoroswap(args: addLiquiditySoroswapArgs) {
     sdk.nativeToScVal(Number(args.amountAMin), { type: "i128" }),
     sdk.nativeToScVal(Number(args.amountBMin), { type: "i128" }),
     new sdk.Address(args.to.publicKey).toScVal(),
-    sdk.nativeToScVal(Number(getCurrentTimePlusOneHour()), { type: "u64" }),
+    sdk.nativeToScVal(getCurrentTimePlusOneHour(), { type: "u64" }),
+    // sdk.nativeToScVal("2479033880342954380", { type: "u64" }),
   ]
 
-  // const scValParams = Object.values(params).map(
-  //   (param) => {
-  //     if (typeof param === "number") {
-  //       return sdk.nativeToScVal(param, {type: "i128"})
-  //     } else {
-  //       return new sdk.Address(param).toScVal()
-  //     }
   //   })
-  console.log("scValParams:", scValParams)
+  // console.log("scValParams:", scValParams)
   const transaction = new sdk.TransactionBuilder(account, { fee })
     .setNetworkPassphrase(sdk.Networks.TESTNET)
     .setTimeout(30)
@@ -386,20 +373,63 @@ export async function addLiquiditySoroswap(args: addLiquiditySoroswapArgs) {
 
 
   try {
-    const result = await sorobanServer.sendTransaction(preparedTransaction);
-    // print stringified result
-    console.log(JSON.stringify(result, null, 2));
+    const txRes = await sorobanServer.sendTransaction(preparedTransaction);
+    // print stringified txRes
+    // console.log(JSON.stringify(txRes, null, 2));
+
+    let confirmation
+    do {
+
+      confirmation = await sorobanServer.getTransaction(txRes.hash)
+      if (confirmation.status !== sdk.SorobanRpc.Api.GetTransactionStatus.NOT_FOUND) {
+        break
+      }
+      await new Promise((resolve) => setTimeout(resolve, 1000))
+    } while (true)
+
+    if (
+
+      confirmation.resultMetaXdr
+    ) {
+
+      // console.log("envelopeXdr:",confirmation.envelopeXdr.toXDR("base64"))
+      // console.log("resultXdr:",confirmation.resultXdr.toXDR("base64"))
+      // console.log("resultMetaXdr:",confirmation.resultMetaXdr.toXDR("base64"))
+      const buff = Buffer.from(
+        confirmation.resultMetaXdr.toXDR("base64"),
+        "base64"
+      )
+      const txMeta = sdk.xdr.TransactionMeta.fromXDR(buff)
+      // console.log("txMeta:", txMeta.value())
+      // transform txMeta into a js object
+      // txMeta.value()
+      console.log("confirmation:", confirmation)
+      // console.log("confirmation:", confirmation.resultMetaXdr.v3().sorobanMeta()?.diagnosticEvents())
+      // const diagnosticEvents = confirmation.resultMetaXdr.v3().sorobanMeta()?.diagnosticEvents()
+      // diagnosticEvents?.forEach((event) => {
+      //   console.log("event:", event.event().body())
+      //   const contractId = event.event().contractId()?.toString("hex") || ""
+      //   console.log("contractId:", sdk.StrKey.encodeContract(hexToByte(contractId)))
+      //   console.log("inSuccessfulContractCall:", event.inSuccessfulContractCall())
+      // })
+
+      return ""
+    } else {
+
+      console.log("confirmation:", confirmation)
+      throw new Error("Transaction failed")
+    }
   } catch (error) {
     // handle the error
     console.error(error);
   }
 }
 
-export async function getContractIdStellarAsset(args: getContractIdStellarAssetArgs) {
+export function getContractIdStellarAsset(args: getContractIdStellarAssetArgs) {
   // return args.asset.contractId()  
   // @ts-ignore
   const contractId = args.asset.contractId(sdk.Networks.TESTNET)
-  console.log("contractId:", contractId)
+  console.log("stellar asset contractId:", contractId)
   return contractId
 
 }
@@ -440,7 +470,7 @@ export async function uploadTokenContractWasm(signer: TestAccount) {
   const hf = sdk.xdr.HostFunction.hostFunctionTypeUploadContractWasm(
     wasmBuffer
   )
-  const op = sdk.Operation.uploadContractWasm({wasm: wasmBuffer})
+  const op = sdk.Operation.uploadContractWasm({ wasm: wasmBuffer })
   const source = await sorobanServer.getAccount(signer.publicKey)
   const sourceKeypair = sdk.Keypair.fromSecret(signer.privateKey)
 
@@ -456,7 +486,7 @@ export async function uploadTokenContractWasm(signer: TestAccount) {
     preparedTransaction.sign(sourceKeypair)
     const submitTransactionResponse = await sorobanServer.sendTransaction(preparedTransaction);
     return submitTransactionResponse
-  } catch (error) { 
+  } catch (error) {
     if (axios.isAxiosError(error) && error.response) {
       const apiError = error.response.data as ApiErrorResponse;
       if (apiError && apiError.extras && apiError.extras.result_codes) {
@@ -476,7 +506,7 @@ export async function createTokenContract(signer: TestAccount) {
   const wasmBuffer = fs.readFileSync("/workspace/scripts/do-7-txs/soroban_token_contract.optimized.wasm")
   const hash = sdk.hash(wasmBuffer)
   const op = sdk.Operation.createCustomContract({
-    address: new sdk.Address(signer.publicKey) ,
+    address: new sdk.Address(signer.publicKey),
     wasmHash: hash,
   })
   const source = await sorobanServer.getAccount(signer.publicKey)
@@ -492,7 +522,41 @@ export async function createTokenContract(signer: TestAccount) {
     const preparedTransaction = await sorobanServer.prepareTransaction(tx)
     preparedTransaction.sign(sourceKeypair)
     const submitTransactionResponse = await sorobanServer.sendTransaction(preparedTransaction);
-    return submitTransactionResponse
+    // return submitTransactionResponse
+    let confirmation
+    do {
+
+      confirmation = await sorobanServer.getTransaction(submitTransactionResponse.hash)
+      if (confirmation.status !== sdk.SorobanRpc.Api.GetTransactionStatus.NOT_FOUND) {
+        break
+      }
+      await new Promise((resolve) => setTimeout(resolve, 1000))
+    } while (true)
+
+    if (
+
+      confirmation.resultMetaXdr
+    ) {
+
+      const buff = Buffer.from(
+        confirmation.resultMetaXdr.toXDR("base64"),
+        "base64"
+      )
+      // console.log("confirmation:", confirmation)
+      // console.log("buff:",buff.toString("hex"))
+      const txMeta = sdk.xdr.TransactionMeta.fromXDR(buff)
+      const contractId =
+        txMeta
+          .v3()
+          .sorobanMeta()
+          ?.returnValue()
+          .address()
+          .contractId()
+          .toString("hex") || ""
+      console.log("contractId:", contractId)
+      return sdk.StrKey.encodeContract(hexToByte(contractId))
+    }
+
   } catch (error) {
     if (axios.isAxiosError(error) && error.response) {
       const apiError = error.response.data as ApiErrorResponse;
@@ -506,7 +570,7 @@ export async function createTokenContract(signer: TestAccount) {
     } else {
       console.error('Non-API error occurred:', error);
     }
-  
+
   }
 }
 export const getCurrentTimePlusOneHour = () => {
@@ -514,7 +578,121 @@ export const getCurrentTimePlusOneHour = () => {
   const now = Date.now();
 
   // Add one hour (3600000 milliseconds)
-  const oneHourLater = now + 3600000;
+  const oneHourLater = now + 36000000;
 
-  return oneHourLater;
+  const oneHourLaterSeconds = Math.floor(oneHourLater / 1000);
+  return oneHourLaterSeconds;
 };
+
+export function hexToByte(hexString: string) {
+  if (hexString.length % 2 !== 0) {
+    throw "Must have an even number of hex digits to convert to bytes"
+  }
+  var numBytes = hexString.length / 2
+  var byteArray = Buffer.alloc(numBytes)
+  for (var i = 0; i < numBytes; i++) {
+    byteArray[i] = parseInt(hexString.substr(i * 2, 2), 16)
+  }
+  return byteArray
+}
+
+export async function initializeTokenContract(args: initializeTokenContractArgs) {
+
+  const source = await sorobanServer.getAccount(args.source.publicKey)
+  const sourceKeypair = sdk.Keypair.fromSecret(args.source.privateKey)
+  const initializeArgs = [
+    new sdk.Address(args.source.publicKey).toScVal(),
+    sdk.nativeToScVal(7, { type: "u32" }),
+    sdk.nativeToScVal(args.name, { type: "string" }),
+    sdk.nativeToScVal(args.symbol, { type: "string" }),
+  ]
+  const op = sdk.Operation.invokeContractFunction({
+    contract: args.contractId,
+    function: "initialize",
+    args: initializeArgs,
+  })
+
+  let tx = new sdk.TransactionBuilder(source, { fee: sdk.BASE_FEE })
+    .setNetworkPassphrase(sdk.Networks.TESTNET)
+    .setTimeout(30)
+    .addOperation(op)
+    .build();
+  const preparedTransaction = await sorobanServer.prepareTransaction(tx)
+  preparedTransaction.sign(sourceKeypair)
+  try {
+    const txRes = await sorobanServer.sendTransaction(preparedTransaction);
+    let confirmation
+    do {
+
+      confirmation = await sorobanServer.getTransaction(txRes.hash)
+      if (confirmation.status !== sdk.SorobanRpc.Api.GetTransactionStatus.NOT_FOUND) {
+        break
+      }
+      await new Promise((resolve) => setTimeout(resolve, 1000))
+    } while (true)
+    console.log("initialize contract confirmation:", confirmation)
+    return [txRes, confirmation]
+  } catch (error) {
+    if (axios.isAxiosError(error) && error.response) {
+      const apiError = error.response.data as ApiErrorResponse;
+      if (apiError && apiError.extras && apiError.extras.result_codes) {
+        console.log('Result Codes:', apiError.extras.result_codes);
+        // Handle the specifics of the result codes here
+      } else {
+        console.log("error:", error)
+        console.log('Error does not have the expected format');
+      }
+    } else {
+      console.error('Non-API error occurred:', error);
+    }
+  }
+}
+
+export async function mintTokens(args: mintTokensArgs) {
+  const source = await sorobanServer.getAccount(args.source.publicKey)
+  const sourceKeypair = sdk.Keypair.fromSecret(args.source.privateKey)
+  const mintTokenArgs = [
+    new sdk.Address(args.destination).toScVal(),
+    sdk.nativeToScVal(Number(args.amount), { type: "i128" }),
+  ]
+  const op = sdk.Operation.invokeContractFunction({
+    contract: args.contractId,
+    function: "mint",
+    args: mintTokenArgs,
+  })
+  let tx = new sdk.TransactionBuilder(source, { fee: sdk.BASE_FEE })
+    .setNetworkPassphrase(sdk.Networks.TESTNET)
+    .setTimeout(30)
+    .addOperation(op)
+    .build();
+  const preparedTransaction = await sorobanServer.prepareTransaction(tx)
+  preparedTransaction.sign(sourceKeypair)
+  try {
+    const txRes = await sorobanServer.sendTransaction(preparedTransaction);
+    let confirmation
+    do {
+
+      confirmation = await sorobanServer.getTransaction(txRes.hash)
+      if (confirmation.status !== sdk.SorobanRpc.Api.GetTransactionStatus.NOT_FOUND) {
+        break
+      }
+      await new Promise((resolve) => setTimeout(resolve, 1000))
+    } while (true)
+    console.log("mint tokens confirmation:", confirmation)
+    return [txRes, confirmation]
+  } catch (error) {
+    if (axios.isAxiosError(error) && error.response) {
+      const apiError = error.response.data as ApiErrorResponse;
+      if (apiError && apiError.extras && apiError.extras.result_codes) {
+        console.log('Result Codes:', apiError.extras.result_codes);
+        // Handle the specifics of the result codes here
+      } else {
+        console.log("error:", error)
+        console.log('Error does not have the expected format');
+      }
+    } else {
+      console.error('Non-API error occurred:', error);
+    }
+  }
+
+}

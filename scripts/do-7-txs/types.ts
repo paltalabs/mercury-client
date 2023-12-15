@@ -89,3 +89,17 @@ export interface deployStellarAssetContractArgs {
   asset: sdk.Asset;
   source: TestAccount;
 }
+
+export interface initializeTokenContractArgs {
+  source: TestAccount;
+  contractId: string;
+  name: string;
+  symbol: string
+}
+
+export interface mintTokensArgs {
+  source: TestAccount;
+  contractId: string;
+  amount: string;
+  destination:string;
+}

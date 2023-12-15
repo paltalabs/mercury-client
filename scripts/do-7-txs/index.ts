@@ -2,10 +2,12 @@
 
 // Create users (wallet addresses)
 
-import { createAddress, establishPoolTrustline, fundAccount, issueAndDistributeAsset, loadAccounts, saveAccounts, getBalancesFromPublicKey, establishPoolTrustlineAndAddLiquidity, createAsset, getXLMAsset, payment, liquidityPoolWithdraw, createLiquidityPoolAsset, pathPaymentStrictSend, pathPaymentStrictReceive, addLiquiditySoroswap, getContractIdStellarAsset, deployStellarAssetContract, uploadTokenContractWasm, createTokenContract } from "./utils";
+import { createAddress, establishPoolTrustline, fundAccount, issueAndDistributeAsset, loadAccounts, saveAccounts, getBalancesFromPublicKey, establishPoolTrustlineAndAddLiquidity, createAsset, getXLMAsset, payment, liquidityPoolWithdraw, createLiquidityPoolAsset, pathPaymentStrictSend, pathPaymentStrictReceive, addLiquiditySoroswap, getContractIdStellarAsset, deployStellarAssetContract, uploadTokenContractWasm, createTokenContract, initializeTokenContract, mintTokens } from "./utils";
 import { ApiErrorResponse, TestAccount } from "./types";
-import {Mercury} from "mercury-sdk"
+import { Mercury } from "mercury-sdk"
 import { test } from "node:test";
+
+let routerContractAddress = "CAGC46HNBMEZJP62PPTSUBUCS7LWBS5QLRNFSRCA4Q2A57YSPYBKGSTM"
 
 async function main() {
     // Save them on results/testAccounts.json
@@ -40,11 +42,18 @@ async function main() {
         return
     }
     const mercuryInstance = new Mercury({
-        backendEndpoint: process.env.MERCURY_BACKEND_ENDPOINT ,
-        graphqlEndpoint: process.env.MERCURY_GRAPHQL_ENDPOINT ,
-        email: process.env.MERCURY_TESTER_EMAIL ,
-        password: process.env.MERCURY_TESTER_PASSWORD 
+        backendEndpoint: process.env.MERCURY_BACKEND_ENDPOINT,
+        graphqlEndpoint: process.env.MERCURY_GRAPHQL_ENDPOINT,
+        email: process.env.MERCURY_TESTER_EMAIL,
+        password: process.env.MERCURY_TESTER_PASSWORD
     })
+
+    // Subscribe to contracts
+    // console.log("subscribing to contracts")
+    // const subscribeToContractEventsResult = await mercuryInstance.subscribeToContractEvents({
+    //     contractId: routerContractAddress,
+    // })
+    // console.log("subscribeToContractEventsResult:", subscribeToContractEventsResult)
 
     // Subscribe to accounts
     // await Promise.all(testAccounts.map(async (acc) => {
@@ -63,7 +72,7 @@ async function main() {
     // console.log(JSON.stringify(issuedAssetResponse))
 
     const palta = createAsset("PALTA", testAccounts[0].publicKey)
-    getContractIdStellarAsset({asset: palta})
+    getContractIdStellarAsset({ asset: palta })
     // await deployStellarAssetContract({asset: palta, source: testAccounts[0]})
 
     const xlm = getXLMAsset()
@@ -149,9 +158,14 @@ async function main() {
     //     destinationAmount: "10",
     //     path: [palta],
     //     source: testAccounts[2]
-    
+
     // })
     // console.log(pathPaymenResponse2)
+
+
+    //--------------------------
+    // SOROBAN TOKENS
+    //--------------------------
 
     // the second time throws error:
     //     HostError: Error(Storage, ExistingValue)
@@ -160,22 +174,94 @@ async function main() {
     // console.log("uploadTokenContractWasmResponse:",uploadTokenContractWasmResponse)
 
 
-    const creatTokenContractResponse = await createTokenContract(testAccounts[0])
-    console.log("creatTokenContractResponse:",creatTokenContractResponse)
+
+
+    // const paltaSorobanContractId1 = await createTokenContract(testAccounts[0])
+    // console.log("paltaSorobanContractId1:",paltaSorobanContractId1)
+
+    // await initializeTokenContract({
+    //     contractId: paltaSorobanContractId1??"",
+    //     source: testAccounts[0],
+    //     name: "paltaSoroban",
+    //     symbol: "PALTASO",
+    // })
+    // await mintTokens({
+    //     contractId: paltaSorobanContractId1??"",
+    //     source: testAccounts[0],
+    //     amount: "2500000",
+    //     destination: testAccounts[1].publicKey,
+    // })
+
+    // const paltaSorobanContractId2 = await createTokenContract(testAccounts[0])
+    // console.log("paltaSorobanContractId2:",paltaSorobanContractId2)
+
+    // await initializeTokenContract({
+    //     contractId: paltaSorobanContractId2??"",
+    //     source: testAccounts[0],
+    //     name: "paltaSoroban2",
+    //     symbol: "PALTASO2",
+    // })
+    // await mintTokens({
+    //     contractId: paltaSorobanContractId2??"",
+    //     source: testAccounts[0],
+    //     amount: "2500000",
+    //     destination: testAccounts[1].publicKey,
+    // })
+
     // try {
     //     await addLiquiditySoroswap({
-    //         tokenA: await getContractIdStellarAsset({asset: palta}),
-    //         tokenB: await getContractIdStellarAsset({asset: xlm}),
-    //         amountADesired: "10", 
-    //         amountBDesired: "10",
-    //         amountAMin: "1",
-    //         amountBMin: "1",
+    //         tokenA: paltaSorobanContractId1 ?? "",
+    //         tokenB: paltaSorobanContractId2 ?? "",
+    //         amountADesired: "2500000",
+    //         amountBDesired: "2500000",
+    //         amountAMin: "1500000",
+    //         amountBMin: "1500000",
     //         source: testAccounts[1],
     //         to: testAccounts[1],
     //     })
     // } catch (error) {
     //     console.log(error)
     // }
+    //--------------------------------
+
+    
+    //--------------------------------
+    // Using tokens deployed with soroban-cli
+    //--------------------------------
+    // try {
+    //     await addLiquiditySoroswap({
+    //         tokenA: "CB2RUFY7GU6MTBP6I54MH22GNTE7SZ55MGPBOMZI2B6ETMUUCFFR36YW",
+    //         tokenB: "CCKVLYS652DW6LXJG66E44VBVCNHHCF37S5E55LSD2GOBOVUDML5DWAX",
+    //         amountADesired: "2500000",
+    //         amountBDesired: "2500000",
+    //         amountAMin: "1500000",
+    //         amountBMin: "1500000",
+    //         source: testAccounts[1],
+    //         to: testAccounts[1],
+    //     })
+    // } catch (error) {
+    //     console.log(error)
+    // }
+    
+    // -------------------------------
+    // Using wrapped Stellar assets
+    // -------------------------------
+    await printBalances(testAccounts)
+    try {
+        await addLiquiditySoroswap({
+            tokenA: getContractIdStellarAsset({asset: palta}),
+            tokenB: getContractIdStellarAsset({asset: xlm}),
+            amountADesired: "78438381341", 
+            amountBDesired: "78438381341",
+            amountAMin: "48438381341",
+            amountBMin: "48438381341",
+            source: testAccounts[1],
+            to: testAccounts[1],
+        })
+    } catch (error) {
+        console.log(error)
+    }
+
 }
 main()
 
