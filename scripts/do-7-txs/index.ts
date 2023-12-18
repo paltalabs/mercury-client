@@ -7,7 +7,7 @@ import { ApiErrorResponse, TestAccount } from "./types";
 import { Mercury } from "mercury-sdk"
 import { test } from "node:test";
 
-let routerContractAddress = "CAGC46HNBMEZJP62PPTSUBUCS7LWBS5QLRNFSRCA4Q2A57YSPYBKGSTM"
+let routerContractAddress = "CDDE4SR4OU33ZPOKQ4T2AL45QOWWG6CF72O3RBBTKETUNCKFFAU3UODB"
 
 async function main() {
     // Save them on results/testAccounts.json
@@ -19,6 +19,13 @@ async function main() {
     // ]
 
     // saveAccounts(testAccounts)
+    
+    const testAccounts = loadAccounts()
+    if (testAccounts == undefined) {
+        console.error("testAccount undefined")
+        return
+    }
+    console.log("testAccounts:", testAccounts)
     // // Fund account
     // console.log("funding accounts...")
     // await Promise.all(
@@ -26,27 +33,20 @@ async function main() {
     //     await fundAccount(acc)
     // ))
 
-    const testAccounts = loadAccounts()
-    if (testAccounts == undefined) {
-        console.error("testAccount undefined")
-        return
-    }
-    console.log("testAccounts:", testAccounts)
-
-    // TODO: Subscribe to mercury
-    if (process.env.MERCURY_BACKEND_ENDPOINT == undefined ||
-        process.env.MERCURY_GRAPHQL_ENDPOINT == undefined ||
-        process.env.MERCURY_TESTER_EMAIL == undefined ||
-        process.env.MERCURY_TESTER_PASSWORD == undefined) {
-        console.error("Environment variables are empty")
-        return
-    }
-    const mercuryInstance = new Mercury({
-        backendEndpoint: process.env.MERCURY_BACKEND_ENDPOINT,
-        graphqlEndpoint: process.env.MERCURY_GRAPHQL_ENDPOINT,
-        email: process.env.MERCURY_TESTER_EMAIL,
-        password: process.env.MERCURY_TESTER_PASSWORD
-    })
+    // // TODO: Subscribe to mercury
+    // if (process.env.MERCURY_BACKEND_ENDPOINT == undefined ||
+    //     process.env.MERCURY_GRAPHQL_ENDPOINT == undefined ||
+    //     process.env.MERCURY_TESTER_EMAIL == undefined ||
+    //     process.env.MERCURY_TESTER_PASSWORD == undefined) {
+    //     console.error("Environment variables are empty")
+    //     return
+    // }
+    // const mercuryInstance = new Mercury({
+    //     backendEndpoint: process.env.MERCURY_BACKEND_ENDPOINT,
+    //     graphqlEndpoint: process.env.MERCURY_GRAPHQL_ENDPOINT,
+    //     email: process.env.MERCURY_TESTER_EMAIL,
+    //     password: process.env.MERCURY_TESTER_PASSWORD
+    // })
 
     // Subscribe to contracts
     // console.log("subscribing to contracts")
@@ -59,23 +59,30 @@ async function main() {
     // await Promise.all(testAccounts.map(async (acc) => {
     //     await mercuryInstance.subscribeToFullAccount({ publicKey: acc.publicKey });
     // }));
-
+ 
     // Create a Stellar classic Asset (PALTA) and distribute
     // Account 0 is issuer
 
-    // console.log("issuing assets")
-    // const issuedAssetResponse = await issueAndDistributeAsset({
-    //     name: "PALTA",
-    //     issuer: testAccounts[0],
-    //     destination: testAccounts.slice(1)
-    // })
-    // console.log(JSON.stringify(issuedAssetResponse))
+    console.log("--------------------------")
+    console.log("- issuing assets...")
+    const issuedAssetResponse = await issueAndDistributeAsset({
+        name: "PALTA",
+        issuer: testAccounts[0],
+        destination: testAccounts.slice(1)
+    })
+    console.log(JSON.stringify(issuedAssetResponse))
 
+    console.log("--------------------------")
+    console.log("- Getting wrapped asset...")
     const palta = createAsset("PALTA", testAccounts[0].publicKey)
-    getContractIdStellarAsset({ asset: palta })
+    // getContractIdStellarAsset({ asset: palta })
+    // console.log("palta:", palta)
+    // console.log("just before deployStellarAssetContract")
     // await deployStellarAssetContract({asset: palta, source: testAccounts[0]})
 
     const xlm = getXLMAsset()
+
+    // console.log("PAYMENTS-----------------------")
     // await printBalances(testAccounts)
 
     // // Do payments
@@ -92,6 +99,9 @@ async function main() {
     //     amount: "100",
     //     asset: xlm
     // })
+    // await printBalances(testAccounts)
+    // console.log("END PAYMENTS-----------------------")
+
     // // Account 2 pay to Account 1
     // await payment({
     //     from: testAccounts[2],
@@ -173,9 +183,6 @@ async function main() {
     // const uploadTokenContractWasmResponse = await uploadTokenContractWasm(testAccounts[0])
     // console.log("uploadTokenContractWasmResponse:",uploadTokenContractWasmResponse)
 
-
-
-
     // const paltaSorobanContractId1 = await createTokenContract(testAccounts[0])
     // console.log("paltaSorobanContractId1:",paltaSorobanContractId1)
 
@@ -224,7 +231,7 @@ async function main() {
     // }
     //--------------------------------
 
-    
+
     //--------------------------------
     // Using tokens deployed with soroban-cli
     //--------------------------------
@@ -242,19 +249,21 @@ async function main() {
     // } catch (error) {
     //     console.log(error)
     // }
-    
+
     // -------------------------------
     // Using wrapped Stellar assets
     // -------------------------------
+    console.log("---------------------------------------------------")
+    console.log("Adding liquidity in Soroswap with stellar assets...")
     await printBalances(testAccounts)
     try {
         await addLiquiditySoroswap({
-            tokenA: getContractIdStellarAsset({asset: palta}),
-            tokenB: getContractIdStellarAsset({asset: xlm}),
-            amountADesired: "78438381341", 
-            amountBDesired: "78438381341",
-            amountAMin: "48438381341",
-            amountBMin: "48438381341",
+            tokenA: getContractIdStellarAsset({ asset: palta }),
+            tokenB: getContractIdStellarAsset({ asset: xlm }),
+            amountADesired: "1002",
+            amountBDesired: "1002",
+            amountAMin: "0",
+            amountBMin: "0",
             source: testAccounts[1],
             to: testAccounts[1],
         })
