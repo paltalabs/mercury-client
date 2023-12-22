@@ -2,36 +2,67 @@
 
 // Create users (wallet addresses)
 
-import { createAddress, establishPoolTrustline, fundAccount, issueAndDistributeAsset, loadAccounts, saveAccounts, getBalancesFromPublicKey, establishPoolTrustlineAndAddLiquidity, createAsset, getXLMAsset, payment, liquidityPoolWithdraw, createLiquidityPoolAsset, pathPaymentStrictSend, pathPaymentStrictReceive, addLiquiditySoroswap, getContractIdStellarAsset, deployStellarAssetContract, uploadTokenContractWasm, createTokenContract, initializeTokenContract, mintTokens } from "./utils";
+import { createAddress, establishPoolTrustline, loadAccounts, saveAccounts, getBalancesFromPublicKey, establishPoolTrustlineAndAddLiquidity, createAsset, getXLMAsset, payment, liquidityPoolWithdraw, createLiquidityPoolAsset, pathPaymentStrictSend, pathPaymentStrictReceive, getContractIdStellarAsset, TxMaker } from "./utils";
 import { ApiErrorResponse, TestAccount } from "./types";
 import { Mercury } from "mercury-sdk"
 import { test } from "node:test";
 
-let routerContractAddress = "CDDE4SR4OU33ZPOKQ4T2AL45QOWWG6CF72O3RBBTKETUNCKFFAU3UODB"
-
 async function main() {
-    // Save them on results/testAccounts.json
-    console.log("Creating accounts...")
-    // const testAccounts = [
-    //     createAddress(),
-    //     createAddress(),
-    //     createAddress(),
-    // ]
+    const args = process.argv.slice(2);
+    const network = args[0]
 
-    // saveAccounts(testAccounts)
-    
-    const testAccounts = loadAccounts()
-    if (testAccounts == undefined) {
-        console.error("testAccount undefined")
-        return
+    let txMaker: TxMaker;
+
+    switch (network) {
+        case "standalone":
+            txMaker = new TxMaker(
+                "http://172.21.0.3:8000",
+                "http://172.21.0.3:8000/soroban/rpc",
+                "http://172.21.0.3:8000/friendbot?addr=",
+                "CCHKQNMXOZJMTKOWP7LBZGPC2OWSRA5SEXM2USOBUKYZDKU2XUADJA3S",
+                network
+            )
+            break;
+        case "testnet":
+            txMaker = new TxMaker(
+                "https://horizon-testnet.stellar.org",
+                "https://soroban-testnet.stellar.org",
+                "https://friendbot.stellar.org?addr=",
+                "CBN7GPXDONCH3KCLI2FE6LPPYTRCIQR3I2IOE2Z7OE3OO2UHO7LQ4CZL",
+                network
+            )
+            break;
+        default:
+            console.error("Unsupported network. Only standalone and testnet are supported.");
+            return;
     }
+
+
+    console.log("--------------------------")
+    console.log("Creating accounts...")
+    const testAccounts = [
+        createAddress(),
+        createAddress(),
+        createAddress(),
+    ]
+
+    // Save them on results/testAccounts.json
+    saveAccounts(testAccounts)
+
+    // const testAccounts = loadAccounts()
+    // if (testAccounts == undefined) {
+    //     console.error("testAccount undefined")
+    //     return
+    // }
     console.log("testAccounts:", testAccounts)
-    // // Fund account
-    // console.log("funding accounts...")
-    // await Promise.all(
-    //     testAccounts.map(async(acc)=>
-    //     await fundAccount(acc)
-    // ))
+
+    // Fund account
+    console.log("--------------------------")
+    console.log("funding accounts...")
+    await Promise.all(
+        testAccounts.map(async (acc) =>
+            await txMaker.fundAccount(acc)
+        ))
 
     // // TODO: Subscribe to mercury
     // if (process.env.MERCURY_BACKEND_ENDPOINT == undefined ||
@@ -59,28 +90,29 @@ async function main() {
     // await Promise.all(testAccounts.map(async (acc) => {
     //     await mercuryInstance.subscribeToFullAccount({ publicKey: acc.publicKey });
     // }));
- 
+
     // Create a Stellar classic Asset (PALTA) and distribute
     // Account 0 is issuer
 
     console.log("--------------------------")
     console.log("- issuing assets...")
-    const issuedAssetResponse = await issueAndDistributeAsset({
+    const issuedAssetResponse = await txMaker.issueAndDistributeAsset({
         name: "PALTA",
         issuer: testAccounts[0],
         destination: testAccounts.slice(1)
     })
-    console.log(JSON.stringify(issuedAssetResponse))
+    console.log("issuedAssetResponse status:", issuedAssetResponse.status)
 
     console.log("--------------------------")
     console.log("- Getting wrapped asset...")
     const palta = createAsset("PALTA", testAccounts[0].publicKey)
-    // getContractIdStellarAsset({ asset: palta })
-    // console.log("palta:", palta)
-    // console.log("just before deployStellarAssetContract")
-    // await deployStellarAssetContract({asset: palta, source: testAccounts[0]})
 
+    const deployStellarAssetContractResponse = await txMaker.deployStellarAssetContract({ asset: palta, source: testAccounts[0] })
+    console.log("deployStellarAssetContractResponse.status", deployStellarAssetContractResponse.status)
+    if (deployStellarAssetContractResponse.status == "error") console.log("deployStellarAssetContractResponse.error:", deployStellarAssetContractResponse.error)
     const xlm = getXLMAsset()
+
+    // if (network == "standalone") await deployStellarAssetContract({asset: xlm, source: testAccounts[0]})
 
     // console.log("PAYMENTS-----------------------")
     // await printBalances(testAccounts)
@@ -179,56 +211,88 @@ async function main() {
 
     // the second time throws error:
     //     HostError: Error(Storage, ExistingValue)
+    console.log("--------------------------")
+    console.log("Deploying soroban tokens...")
+    const uploadTokenContractWasmResponse = await txMaker.uploadTokenContractWasm(testAccounts[0])
+    console.log("uploadTokenContractWasmResponse.status:", uploadTokenContractWasmResponse.status)
+    if (uploadTokenContractWasmResponse.status == "error") console.log("uploadTokenContractWasmResponse.error:", uploadTokenContractWasmResponse.error)
 
-    // const uploadTokenContractWasmResponse = await uploadTokenContractWasm(testAccounts[0])
-    // console.log("uploadTokenContractWasmResponse:",uploadTokenContractWasmResponse)
+    console.log("Creating palta soroban 1 token contract...")
+    const paltaSorobanContractId1 = await txMaker.createTokenContract(testAccounts[0])
 
-    // const paltaSorobanContractId1 = await createTokenContract(testAccounts[0])
-    // console.log("paltaSorobanContractId1:",paltaSorobanContractId1)
+    if (typeof paltaSorobanContractId1 == "string") {
+        console.log("paltaSorobanContractId1:", paltaSorobanContractId1)
+        console.log("Initializing palta soroban 1 token contract...")
+        const initializeTokenContractResponse = await txMaker.initializeTokenContract({
+            contractId: paltaSorobanContractId1 ?? "",
+            source: testAccounts[0],
+            name: "paltaSoroban",
+            symbol: "PALTASO",
+        })
+        console.log("initializeTokenContractResponse.status:", initializeTokenContractResponse.status)
 
-    // await initializeTokenContract({
-    //     contractId: paltaSorobanContractId1??"",
-    //     source: testAccounts[0],
-    //     name: "paltaSoroban",
-    //     symbol: "PALTASO",
-    // })
-    // await mintTokens({
-    //     contractId: paltaSorobanContractId1??"",
-    //     source: testAccounts[0],
-    //     amount: "2500000",
-    //     destination: testAccounts[1].publicKey,
-    // })
 
-    // const paltaSorobanContractId2 = await createTokenContract(testAccounts[0])
-    // console.log("paltaSorobanContractId2:",paltaSorobanContractId2)
+        console.log("Minting palta soroban 1 token contract...")
+        const mintTokensResponse = await txMaker.mintTokens({
+            contractId: paltaSorobanContractId1 ?? "",
+            source: testAccounts[0],
+            amount: "2500000",
+            destination: testAccounts[1].publicKey,
+        })
+        console.log("mintTokensResponse.status:", mintTokensResponse.status)
 
-    // await initializeTokenContract({
-    //     contractId: paltaSorobanContractId2??"",
-    //     source: testAccounts[0],
-    //     name: "paltaSoroban2",
-    //     symbol: "PALTASO2",
-    // })
-    // await mintTokens({
-    //     contractId: paltaSorobanContractId2??"",
-    //     source: testAccounts[0],
-    //     amount: "2500000",
-    //     destination: testAccounts[1].publicKey,
-    // })
+    } else {
+        console.log("paltaSorobanContractId1 is not a string")
+        console.log("paltaSorobanContractId1:", paltaSorobanContractId1)
+        return
+    }
 
-    // try {
-    //     await addLiquiditySoroswap({
-    //         tokenA: paltaSorobanContractId1 ?? "",
-    //         tokenB: paltaSorobanContractId2 ?? "",
-    //         amountADesired: "2500000",
-    //         amountBDesired: "2500000",
-    //         amountAMin: "1500000",
-    //         amountBMin: "1500000",
-    //         source: testAccounts[1],
-    //         to: testAccounts[1],
-    //     })
-    // } catch (error) {
-    //     console.log(error)
-    // }
+    console.log("Creating palta soroban 2 token contract...")
+    const paltaSorobanContractId2 = await txMaker.createTokenContract(testAccounts[0])
+
+    console.log("paltaSorobanContractId2:", paltaSorobanContractId2)
+    if (typeof paltaSorobanContractId2 == "string") {
+
+        console.log("initializing token contract...")
+        const initializeTokenContractResponse = await txMaker.initializeTokenContract({
+            contractId: paltaSorobanContractId2 ?? "",
+            source: testAccounts[0],
+            name: "paltaSoroban2",
+            symbol: "PALTASO2",
+        })
+        console.log("initializeTokenContractResponse.status:", initializeTokenContractResponse.status)
+
+        console.log("Minting tokens...")
+
+        const mintTokensResponse = await txMaker.mintTokens({
+            contractId: paltaSorobanContractId2 ?? "",
+            source: testAccounts[0],
+            amount: "2500000",
+            destination: testAccounts[1].publicKey,
+        })
+        console.log("mintTokensResponse.status:", mintTokensResponse.status)
+    } else {
+        console.log("paltaSorobanContractId2 is not a string")
+        console.log("paltaSorobanContractId2:", paltaSorobanContractId2)
+        return
+    }
+
+    console.log("--------------------------")
+    console.log("Adding liquidity to Soroswap...")
+    try {
+        await txMaker.addLiquiditySoroswap({
+            tokenA: paltaSorobanContractId1 ?? "",
+            tokenB: paltaSorobanContractId2 ?? "",
+            amountADesired: "2500000",
+            amountBDesired: "2500000",
+            amountAMin: "1500000",
+            amountBMin: "1500000",
+            source: testAccounts[1],
+            to: testAccounts[1],
+        })
+    } catch (error) {
+        console.log(error)
+    }
     //--------------------------------
 
 
@@ -253,23 +317,23 @@ async function main() {
     // -------------------------------
     // Using wrapped Stellar assets
     // -------------------------------
-    console.log("---------------------------------------------------")
-    console.log("Adding liquidity in Soroswap with stellar assets...")
-    await printBalances(testAccounts)
-    try {
-        await addLiquiditySoroswap({
-            tokenA: getContractIdStellarAsset({ asset: palta }),
-            tokenB: getContractIdStellarAsset({ asset: xlm }),
-            amountADesired: "1002",
-            amountBDesired: "1002",
-            amountAMin: "0",
-            amountBMin: "0",
-            source: testAccounts[1],
-            to: testAccounts[1],
-        })
-    } catch (error) {
-        console.log(error)
-    }
+    // console.log("---------------------------------------------------")
+    // console.log("Adding liquidity in Soroswap with stellar assets...")
+    // await printBalances(testAccounts)
+    // try {
+    //     await addLiquiditySoroswap({
+    //         tokenA: getContractIdStellarAsset({ asset: palta }),
+    //         tokenB: getContractIdStellarAsset({ asset: xlm }),
+    //         amountADesired: "1002",
+    //         amountBDesired: "1002",
+    //         amountAMin: "0",
+    //         amountBMin: "0",
+    //         source: testAccounts[1],
+    //         to: testAccounts[1],
+    //     })
+    // } catch (error) {
+    //     console.log(error)
+    // }
 
 }
 main()

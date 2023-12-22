@@ -94,7 +94,7 @@ export interface initializeTokenContractArgs {
   source: TestAccount;
   contractId: string;
   name: string;
-  symbol: string
+  symbol: string;
 }
 
 export interface mintTokensArgs {
