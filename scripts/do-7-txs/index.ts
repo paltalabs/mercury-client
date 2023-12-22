@@ -302,6 +302,22 @@ async function main() {
     
     console.log("--------------------------")
     console.log("Making swaps on Soroswap...")
+    // TODO
+
+    console.log("--------------------------")
+    console.log("Remove liquidity on Soroswap...")
+    const removeLiquiditySoroswapResponse = await txMaker.removeLiquiditySoroswap({
+        tokenA: paltaSorobanContractId1 ?? "",
+        tokenB: paltaSorobanContractId2 ?? "",
+        liquidity: "100",
+        amountAMin: "10",
+        amountBMin: "10",
+        source: testAccounts[1],
+        to: testAccounts[1],
+    })
+    console.log("removeLiquiditySoroswapResponse.status:", removeLiquiditySoroswapResponse.status)
+
+
 }
 main()
 

@@ -81,6 +81,16 @@ export interface addLiquiditySoroswapArgs {
   to: TestAccount;
 }
 
+export interface removeLiquiditySoroswapArgs {
+  tokenA: string;
+  tokenB: string;
+  liquidity: string; 
+  amountAMin: string;
+  amountBMin: string;
+  source: TestAccount;
+  to: TestAccount;
+}
+
 export interface getContractIdStellarAssetArgs {
   asset: sdk.Asset;
 }

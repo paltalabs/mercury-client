@@ -5,7 +5,7 @@ import {
     getCurrentTimePlusOneHour, getLiquidityPoolId,
     getNetworkPassphrase, hexToByte, showErrorResultCodes, waitForConfirmation,
 } from "./utils";
-import { ApiErrorResponse, TestAccount, addLiquiditySoroswapArgs, deployStellarAssetContractArgs, establishPoolTrustlineAndAddLiquidityArgs, initializeTokenContractArgs, issueAndDistributeAssetArgs, liquidityPoolWithdrawArgs, mintTokensArgs, paymentArgs } from "../types";
+import { ApiErrorResponse, removeLiquiditySoroswapArgs, TestAccount, addLiquiditySoroswapArgs, deployStellarAssetContractArgs, establishPoolTrustlineAndAddLiquidityArgs, initializeTokenContractArgs, issueAndDistributeAssetArgs, liquidityPoolWithdrawArgs, mintTokensArgs, paymentArgs } from "../types";
 import axios from "axios";
 import fs from "fs";
 
@@ -604,9 +604,51 @@ export class TxMaker {
             const confirmation = await waitForConfirmation(txRes.hash);
             return confirmation;
         } catch (error) {
+            showErrorResultCodes(error);
             console.error(error);
         }
     }
 
+    /**
+     * Removes liquidity from a pool by invoking the `remove_liquidity` function of the soroswap router contract on the Soroban network.
+     * @param args The arguments for removing liquidity.
+     *             - source: The source account's keypair and public key.
+     *             - tokenA: The address of the first token in the pool.
+     *             - tokenB: The address of the second token in the pool.
+     *             - liquidity: The amount of liquidity to remove.
+     *             - amountAMin: The minimum amount of token A to receive.
+     *             - amountBMin: The minimum amount of token B to receive.
+     *             - to: The destination account's keypair and public key.
+     * @returns A promise that resolves to the confirmation of the transaction.
+     */
+    async removeLiquiditySoroswap(args: removeLiquiditySoroswapArgs): Promise<any> {
+        const source = await this.sorobanServer.getAccount(args.source.publicKey);
+        const sourceKeypair = sdk.Keypair.fromSecret(args.source.privateKey);
+        const routerContract = new sdk.Contract(this.routerContractAddress);
+
+        const scValParams = [
+            new sdk.Address(args.tokenA).toScVal(),
+            new sdk.Address(args.tokenB).toScVal(),
+            sdk.nativeToScVal(Number(args.liquidity), { type: "i128" }),
+            sdk.nativeToScVal(Number(args.amountAMin), { type: "i128" }),
+            sdk.nativeToScVal(Number(args.amountBMin), { type: "i128" }),
+            new sdk.Address(args.to.publicKey).toScVal(),
+            sdk.nativeToScVal(getCurrentTimePlusOneHour(), { type: "u64" }),
+        ];
+
+        const op = routerContract.call("remove_liquidity", ...scValParams);
+        const transaction = this.buildTx(source, sourceKeypair, op);
+        const preparedTransaction = await this.sorobanServer.prepareTransaction(transaction);
+        preparedTransaction.sign(sourceKeypair);
+
+        try {
+            const txRes = await this.sorobanServer.sendTransaction(preparedTransaction);
+            const confirmation = await waitForConfirmation(txRes.hash);
+            return confirmation;
+        } catch (error) {
+            showErrorResultCodes(error);
+            console.error(error);
+        }
+    }
 
 }
