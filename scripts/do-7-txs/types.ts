@@ -12,7 +12,7 @@ export interface issueAndDistributeAssetArgs {
 
 export interface paymentArgs {
   from: TestAccount;
-  to: TestAccount;
+  to: string;
   amount: string;
   asset: sdk.Asset
 }

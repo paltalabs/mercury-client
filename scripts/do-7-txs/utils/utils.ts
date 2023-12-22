@@ -100,136 +100,11 @@ export function createLiquidityPoolAsset(assetA: sdk.Asset, assetB: sdk.Asset) {
   return new sdk.LiquidityPoolAsset(assetA, assetB, sdk.LiquidityPoolFeeV18);
 }
 
-export function establishPoolTrustline(
-  account: sdk.Account,
-  keypair: sdk.Keypair,
-  poolAsset: sdk.LiquidityPoolAsset,
-  amount?: Number | string
-) {
-  const limit = amount ? amount.toString() : "100000";
-  return server.submitTransaction(
-    buildTx(
-      account,
-      keypair,
-      sdk.Operation.changeTrust({
-        asset: poolAsset,
-        limit: limit,
-      })
-    )
-  );
-}
 
-export function liquidityPoolDeposit(
-  source: sdk.Account,
-  signer: sdk.Keypair,
-  poolId: string,
-  maxReserveA: string,
-  maxReserveB: string) {
-  const exactPrice = Number(maxReserveA) / Number(maxReserveB);
-  const minPrice = exactPrice - exactPrice * 0.1;
-  const maxPrice = exactPrice + exactPrice * 0.1;
-
-  return server.submitTransaction(
-    buildTx(
-      source,
-      signer,
-      sdk.Operation.liquidityPoolDeposit({
-        liquidityPoolId: poolId,
-        maxAmountA: maxReserveA,
-        maxAmountB: maxReserveB,
-        minPrice: minPrice.toFixed(7),
-        maxPrice: maxPrice.toFixed(7),
-      })
-    )
-  );
-}
-
-function getLiquidityPoolId(liquidityPoolAsset: sdk.LiquidityPoolAsset) {
+export function getLiquidityPoolId(liquidityPoolAsset: sdk.LiquidityPoolAsset) {
   return sdk.getLiquidityPoolId("constant_product",
     liquidityPoolAsset.getLiquidityPoolParameters()
   ).toString("hex");
-}
-
-export async function establishPoolTrustlineAndAddLiquidity(args: establishPoolTrustlineAndAddLiquidityArgs) {
-  let assetA, assetB: sdk.Asset;
-  let amountA, amountB: string;
-
-  if (args.assetA < args.assetB) {
-    assetA = args.assetB
-    assetB = args.assetA
-    amountA = args.amountB ?? "100"
-    amountB = args.amountA ?? "200"
-  } else {
-    assetA = args.assetA;
-    assetB = args.assetB;
-    amountA = args.amountA ?? "100"
-    amountB = args.amountB ?? "200"
-  }
-
-  const poolAsset = createLiquidityPoolAsset(assetA, assetB)
-  const poolId = getLiquidityPoolId(poolAsset)
-  const sourceKeypair = sdk.Keypair.fromSecret(args.source.privateKey)
-  const sourceAccount = await getAccount(sourceKeypair)
-  await establishPoolTrustline(sourceAccount, sourceKeypair, poolAsset)
-  await liquidityPoolDeposit(sourceAccount, sourceKeypair, poolId, amountA, amountB)
-}
-
-export async function payment(args: paymentArgs) {
-  const ops = sdk.Operation.payment({
-    amount: args.amount,
-    asset: args.asset,
-    destination: args.to.publicKey
-  })
-  const sourceKeypair = sdk.Keypair.fromSecret(args.from.privateKey)
-  const source = await getAccount(sourceKeypair)
-  let tx = buildTx(source, sourceKeypair, ops)
-  try {
-    const submitTransactionResponse = await server.submitTransaction(tx)
-
-    return submitTransactionResponse
-  } catch (error) {
-    if (axios.isAxiosError(error) && error.response) {
-      const apiError = error.response.data as ApiErrorResponse;
-      if (apiError && apiError.extras && apiError.extras.result_codes) {
-        console.log('Result Codes:', apiError.extras.result_codes);
-        // Handle the specifics of the result codes here
-      } else {
-        console.log('Error does not have the expected format');
-      }
-    } else {
-      console.error('Non-API error occurred:', error);
-    }
-  }
-}
-
-export async function liquidityPoolWithdraw(args: liquidityPoolWithdrawArgs) {
-
-  const ops = sdk.Operation.liquidityPoolWithdraw({
-    liquidityPoolId: getLiquidityPoolId(args.poolAsset),
-    amount: args.amount,
-    minAmountA: args.minAmountA,
-    minAmountB: args.minAmountB,
-  })
-  const sourceKeypair = sdk.Keypair.fromSecret(args.source.privateKey)
-  const source = await getAccount(sourceKeypair)
-  let tx = buildTx(source, sourceKeypair, ops)
-  try {
-    const submitTransactionResponse = await server.submitTransaction(tx)
-
-    return submitTransactionResponse
-  } catch (error) {
-    if (axios.isAxiosError(error) && error.response) {
-      const apiError = error.response.data as ApiErrorResponse;
-      if (apiError && apiError.extras && apiError.extras.result_codes) {
-        console.log('Result Codes:', apiError.extras.result_codes);
-        // Handle the specifics of the result codes here
-      } else {
-        console.log('Error does not have the expected format');
-      }
-    } else {
-      console.error('Non-API error occurred:', error);
-    }
-  }
 }
 
 export async function getLpBalance(args: getLpBalanceArgs) {
@@ -372,4 +247,19 @@ export function hexToByte(hexString: string) {
     byteArray[i] = parseInt(hexString.substr(i * 2, 2), 16)
   }
   return byteArray
+}
+
+export function getAssetBalance(args: { account: sdk.Horizon.AccountResponse, asset: sdk.Asset }) {
+  const balance = args.account.balances.find((balance) => {
+      if (balance.asset_type === "native") {
+          return args.asset.isNative()
+      } else if (balance.asset_type === "liquidity_pool_shares") {
+          // todo: handle liquidity pool shares
+          return false
+      }
+      else {
+          return balance.asset_code === args.asset.code && balance.asset_issuer === args.asset.issuer
+      }
+  })
+  return balance?.balance
 }

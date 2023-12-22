@@ -1,9 +1,11 @@
 import * as sdk from "stellar-sdk";
 import {
-    getCurrentTimePlusOneHour,
+    createLiquidityPoolAsset,
+    getAssetBalance,
+    getCurrentTimePlusOneHour, getLiquidityPoolId,
     getNetworkPassphrase, hexToByte, showErrorResultCodes, waitForConfirmation,
 } from "./utils";
-import { ApiErrorResponse, TestAccount, addLiquiditySoroswapArgs, deployStellarAssetContractArgs, initializeTokenContractArgs, issueAndDistributeAssetArgs, mintTokensArgs } from "../types";
+import { ApiErrorResponse, TestAccount, addLiquiditySoroswapArgs, deployStellarAssetContractArgs, establishPoolTrustlineAndAddLiquidityArgs, initializeTokenContractArgs, issueAndDistributeAssetArgs, liquidityPoolWithdrawArgs, mintTokensArgs, paymentArgs } from "../types";
 import axios from "axios";
 import fs from "fs";
 
@@ -173,6 +175,222 @@ export class TxMaker {
             return { status: "error", error: error };
         }
     }
+
+    /**
+     * Sends a payment from one account to another on the Stellar network.
+     * @param args The arguments for sending the payment.
+     *             - from: The source account's keypair and public key.
+     *             - to: The destination account's public key.
+     *             - amount: The amount to send.
+     *             - asset: The asset to send (e.g., XLM).
+     * @returns A promise that resolves to the confirmation of the transaction.
+     */
+    async payment(args: paymentArgs): Promise<sdk.SorobanRpc.Api.GetSuccessfulTransactionResponse | sdk.SorobanRpc.Api.GetFailedTransactionResponse | { status: string; error: any }> {
+        const sourceKeypair = sdk.Keypair.fromSecret(args.from.privateKey);
+        const source = await this.horizonServer.loadAccount(args.from.publicKey);
+
+        const ops = [
+            sdk.Operation.payment({
+                amount: args.amount,
+                asset: args.asset,
+                destination: args.to
+            }),
+        ];
+
+        let tx = this.buildTx(source, sourceKeypair, ...ops);
+
+        try {
+            const submitTransactionResponse = await this.horizonServer.submitTransaction(tx);
+            const confirmation = await waitForConfirmation(submitTransactionResponse.hash);
+            return confirmation;
+        } catch (error) {
+            console.error("ERROR!", error);
+            showErrorResultCodes(error);
+            return { status: "error", error: error };
+        }
+    }
+
+
+    /**
+     * Increases the trustline limit for a specific asset on the Stellar network.
+     * @param args The arguments for increasing the trustline.
+     *             - source: The source account's keypair and public key.
+     *             - asset: The asset for which to increase the trustline limit.
+     *             - amount: The amount by which to increase the trustline limit.
+     * @returns A promise that resolves to the confirmation of the transaction.
+     */
+    async increaseTrustline(args: {
+        source: TestAccount,
+        asset: sdk.Asset,
+        amount: string
+    }): Promise<sdk.SorobanRpc.Api.GetSuccessfulTransactionResponse | sdk.SorobanRpc.Api.GetFailedTransactionResponse | { status: string; error: any }> {
+        const source = await this.horizonServer.loadAccount(args.source.publicKey);
+        const sourceKeypair = sdk.Keypair.fromSecret(args.source.privateKey);
+        const assetBalance = getAssetBalance({ account: source, asset: args.asset });
+        const newLimit = assetBalance ? Number(assetBalance) + Number(args.amount) : Number(args.amount);
+
+        const ops = [
+            sdk.Operation.changeTrust({
+                asset: args.asset,
+                limit: newLimit.toString(),
+                source: args.source.publicKey
+            }),
+        ];
+        let tx = this.buildTx(source, sourceKeypair, ...ops);
+        try {
+            const submitTransactionResponse = await this.horizonServer.submitTransaction(tx);
+            const confirmation = await waitForConfirmation(submitTransactionResponse.hash);
+            return confirmation;
+        } catch (error) {
+            console.error("ERROR!", error);
+            showErrorResultCodes(error);
+            return { status: "error", error: error };
+        }
+    }
+
+    /**
+     * Establishes a trustline for a liquidity pool asset and adds liquidity to the pool.
+     * @param args The arguments for establishing the trustline and adding liquidity.
+     *             - assetA: The first asset of the liquidity pool.
+     *             - assetB: The second asset of the liquidity pool.
+     *             - amountA: The amount of the first asset to add to the pool (optional, default: "100").
+     *             - amountB: The amount of the second asset to add to the pool (optional, default: "200").
+     *             - source: The source account's keypair and private key.
+     * @returns A promise that resolves when the trustline is established and liquidity is added to the pool.
+     */
+    async establishPoolTrustlineAndAddLiquidity(args: establishPoolTrustlineAndAddLiquidityArgs): Promise<[any, any]> {
+        let assetA, assetB: sdk.Asset;
+        let amountA, amountB: string;
+
+        if (args.assetA < args.assetB) {
+            assetA = args.assetB;
+            assetB = args.assetA;
+            amountA = args.amountB ?? "100";
+            amountB = args.amountA ?? "200";
+        } else {
+            assetA = args.assetA;
+            assetB = args.assetB;
+            amountA = args.amountA ?? "100";
+            amountB = args.amountB ?? "200";
+        }
+
+        const poolAsset = createLiquidityPoolAsset(assetA, assetB);
+        const poolId = getLiquidityPoolId(poolAsset);
+        const sourceKeypair = sdk.Keypair.fromSecret(args.source.privateKey);
+        const sourceAccount = await this.horizonServer.loadAccount(sourceKeypair.publicKey());
+
+        const confirmation1 = await this.establishPoolTrustline(sourceAccount, sourceKeypair, poolAsset);
+        const confirmation2 = await this.liquidityPoolDeposit(sourceAccount, sourceKeypair, poolId, amountA, amountB);
+
+        return Promise.all([confirmation1, confirmation2]);
+    }
+
+    /**
+     * Establishes a trustline for a liquidity pool asset.
+     * @param account The account for which to establish the trustline.
+     * @param keypair The keypair associated with the account.
+     * @param poolAsset The liquidity pool asset for which to establish the trustline.
+     * @param amount The optional amount to set as the trustline limit (default: "100000").
+     * @returns A promise that resolves to the confirmation of the transaction.
+     */
+    async establishPoolTrustline(
+        account: sdk.Account,
+        keypair: sdk.Keypair,
+        poolAsset: sdk.LiquidityPoolAsset,
+        amount?: Number | string
+    ): Promise<any> {
+        const limit = amount ? amount.toString() : "100000";
+        
+        try {
+            const txRes = await this.horizonServer.submitTransaction(
+                this.buildTx(
+                    account,
+                    keypair,
+                    sdk.Operation.changeTrust({
+                        asset: poolAsset,
+                        limit: limit,
+                    })
+                )
+            );
+            const confirmation = await waitForConfirmation(txRes.hash);
+            return confirmation;
+        } catch (error) {
+            console.error("ERROR!", error);
+            showErrorResultCodes(error);
+            return { status: "error", error: error };
+        }
+    }
+
+    /**
+     * Deposits liquidity into a liquidity pool on the Soroban network.
+     * @param source The source account for the transaction.
+     * @param signer The keypair associated with the source account.
+     * @param poolId The ID of the liquidity pool.
+     * @param maxReserveA The maximum amount of the first asset to deposit.
+     * @param maxReserveB The maximum amount of the second asset to deposit.
+     * @returns A promise that resolves to the confirmation of the transaction.
+     */
+    async liquidityPoolDeposit(
+        source: sdk.Account,
+        signer: sdk.Keypair,
+        poolId: string,
+        maxReserveA: string,
+        maxReserveB: string
+    ): Promise<any> {
+        // Calculate the exact price of the assets
+        const exactPrice = Number(maxReserveA) / Number(maxReserveB);
+
+        // Calculate the minimum and maximum price with a 10% deviation
+        const minPrice = exactPrice - exactPrice * 0.1;
+        const maxPrice = exactPrice + exactPrice * 0.1;
+
+        // Submit the transaction to deposit liquidity into the pool
+        try {
+            const txRes = await this.horizonServer.submitTransaction(
+                this.buildTx(
+                    source,
+                    signer,
+                    sdk.Operation.liquidityPoolDeposit({
+                        liquidityPoolId: poolId,
+                        maxAmountA: maxReserveA,
+                        maxAmountB: maxReserveB,
+                        minPrice: minPrice.toFixed(7),
+                        maxPrice: maxPrice.toFixed(7),
+                    })
+                )
+            );
+
+            // Wait for confirmation of the transaction
+            const confirmation = await waitForConfirmation(txRes.hash);
+            return confirmation;
+        }catch(error) {
+            console.error("ERROR!", error);
+            showErrorResultCodes(error);
+            return { status: "error", error: error };
+        }
+    }
+
+    async liquidityPoolWithdraw(args: liquidityPoolWithdrawArgs) {
+
+        const ops = sdk.Operation.liquidityPoolWithdraw({
+          liquidityPoolId: getLiquidityPoolId(args.poolAsset),
+          amount: args.amount,
+          minAmountA: args.minAmountA,
+          minAmountB: args.minAmountB,
+        })
+        const sourceKeypair = sdk.Keypair.fromSecret(args.source.privateKey)
+        const source = await this.horizonServer.loadAccount(args.source.publicKey)
+        let tx = this.buildTx(source, sourceKeypair, ops)
+        try {
+          const submitTransactionResponse = await this.horizonServer.submitTransaction(tx)
+            const confirmation = await waitForConfirmation(submitTransactionResponse.hash);
+          return confirmation
+        } catch (error) {
+            console.error("ERROR!", error);
+            showErrorResultCodes(error);
+            return { status: "error", error: error };
+        }
+      }
 
     /**
      * Uploads a token contract WebAssembly (Wasm) file to the Soroban network.

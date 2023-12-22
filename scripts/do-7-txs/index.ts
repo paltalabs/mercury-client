@@ -2,7 +2,7 @@
 
 // Create users (wallet addresses)
 
-import { createAddress, establishPoolTrustline, loadAccounts, saveAccounts, getBalancesFromPublicKey, establishPoolTrustlineAndAddLiquidity, createAsset, getXLMAsset, payment, liquidityPoolWithdraw, createLiquidityPoolAsset, pathPaymentStrictSend, pathPaymentStrictReceive, getContractIdStellarAsset, TxMaker } from "./utils";
+import { createAddress, loadAccounts, saveAccounts, getBalancesFromPublicKey, createAsset, getXLMAsset, createLiquidityPoolAsset, pathPaymentStrictSend, pathPaymentStrictReceive, getContractIdStellarAsset, TxMaker } from "./utils";
 import { ApiErrorResponse, TestAccount } from "./types";
 import { Mercury } from "mercury-sdk"
 import { test } from "node:test";
@@ -112,72 +112,81 @@ async function main() {
     if (deployStellarAssetContractResponse.status == "error") console.log("deployStellarAssetContractResponse.error:", deployStellarAssetContractResponse.error)
     const xlm = getXLMAsset()
 
-    // if (network == "standalone") await deployStellarAssetContract({asset: xlm, source: testAccounts[0]})
+    console.log("--------------------------")
+    console.log("- Making payments...")
 
-    // console.log("PAYMENTS-----------------------")
-    // await printBalances(testAccounts)
+    // Do payments
+    // Account 1 pay to Account 2
+    console.log("-  Account 1 pay 1000 palta to Account 2...")
+    const paymentAmount = "1000"
 
-    // // Do payments
-    // // Account 1 pay to Account 2
-    // await payment({
-    //     from: testAccounts[1],
-    //     to: testAccounts[2],
-    //     amount: "100",
-    //     asset: palta
-    // })
-    // await payment({
-    //     from: testAccounts[1],
-    //     to: testAccounts[2],
-    //     amount: "100",
-    //     asset: xlm
-    // })
-    // await printBalances(testAccounts)
-    // console.log("END PAYMENTS-----------------------")
+    console.log("increasing trustline for account 2...")
+    const increaseTrustlineResponse = await txMaker.increaseTrustline({
+        asset: palta,
+        source: testAccounts[2],
+        amount: paymentAmount
+    })
+    console.log("increaseTrustlineResponse.status:", increaseTrustlineResponse.status)
 
-    // // Account 2 pay to Account 1
-    // await payment({
-    //     from: testAccounts[2],
-    //     to: testAccounts[1],
-    //     amount: "150",
-    //     asset: palta
-    // })
-    // await payment({
-    //     from: testAccounts[2],
-    //     to: testAccounts[1],
-    //     amount: "150",
-    //     asset: xlm
-    // })
+    console.log("making payment tx...")
+    const payment1Response = await txMaker.payment({
+        from: testAccounts[1],
+        to: testAccounts[2].publicKey,
+        amount: paymentAmount,
+        asset: palta
+    })
+    console.log("payment1Response.status:", payment1Response.status)
 
-    // await printBalances(testAccounts)
-    // // Do Add liquidity XLM/PALTA
-    // // Account 1 and Account 2
-    // await establishPoolTrustlineAndAddLiquidity({
-    //     assetA: palta,
-    //     assetB: xlm,
-    //     source: testAccounts[1],
-    //     amountA: "100",
-    //     amountB: "200"
-    // })
-    // await establishPoolTrustlineAndAddLiquidity({
-    //     assetA: palta,
-    //     assetB: xlm,
-    //     source: testAccounts[2],
-    //     amountA: "100",
-    //     amountB: "200"
-    // })
-    // await printBalances(testAccounts)
+    console.log("-  Account 1 pay 1000 xlm to Account 2...")
+    const payment2Response = await txMaker.payment({
+        from: testAccounts[1],
+        to: testAccounts[2].publicKey,
+        amount: paymentAmount,
+        asset: xlm
+    })
+    console.log("payment2Response.status:", payment2Response.status)
 
-    // const lpXlmPalta = createLiquidityPoolAsset(xlm, palta)
+
+    // Do Add liquidity XLM/PALTA
+    console.log("--------------------------")
+    console.log("- Liquidity Pool deposit to Stellar's AMM...")
+
+    // Account 1 and Account 2
+    const liquidityPoolDepositResponse1 = await txMaker.establishPoolTrustlineAndAddLiquidity({
+        assetA: palta,
+        assetB: xlm,
+        source: testAccounts[1],
+        amountA: "1000",
+        amountB: "2000"
+    })
+    console.log("liquidityPoolDepositResponse1[0].status:", liquidityPoolDepositResponse1[0].status)
+    console.log("liquidityPoolDepositResponse1[1].status:", liquidityPoolDepositResponse1[1].status)
+
+    const liquidityPoolDepositResponse2 = await txMaker.establishPoolTrustlineAndAddLiquidity({
+        assetA: palta,
+        assetB: xlm,
+        source: testAccounts[2],
+        amountA: "1000",
+        amountB: "2000"
+    })
+    console.log("liquidityPoolDepositResponse2[0].status:", liquidityPoolDepositResponse2[0].status)
+    console.log("liquidityPoolDepositResponse2[1].status:", liquidityPoolDepositResponse2[1].status)
+
     // // Do Remove Liquidity Account 2
-    // const response = 
-    // await liquidityPoolWithdraw({
-    //     source: testAccounts[2],
-    //     amount: "100",
-    //     minAmountA: "10",
-    //     minAmountB: "20",
-    //     poolAsset: lpXlmPalta
-    // })
-    // console.log(response)
+
+    console.log("--------------------------")
+    console.log("- Liquidity Pool Withdraw to Stellar's AMM...")
+
+    const lpXlmPalta = createLiquidityPoolAsset(xlm, palta)
+    const liquidityPoolWithdrawResponse =
+        await txMaker.liquidityPoolWithdraw({
+            source: testAccounts[2],
+            amount: "100",
+            minAmountA: "10",
+            minAmountB: "20",
+            poolAsset: lpXlmPalta
+        })
+    console.log("liquidityPoolWithdrawResponse.status", liquidityPoolWithdrawResponse.status)
 
     // // Do Path Payment
     // // Account 2 pays XLM -> PALTA to Account 1
@@ -279,62 +288,20 @@ async function main() {
 
     console.log("--------------------------")
     console.log("Adding liquidity to Soroswap...")
-    try {
-        await txMaker.addLiquiditySoroswap({
-            tokenA: paltaSorobanContractId1 ?? "",
-            tokenB: paltaSorobanContractId2 ?? "",
-            amountADesired: "2500000",
-            amountBDesired: "2500000",
-            amountAMin: "1500000",
-            amountBMin: "1500000",
-            source: testAccounts[1],
-            to: testAccounts[1],
-        })
-    } catch (error) {
-        console.log(error)
-    }
-    //--------------------------------
-
-
-    //--------------------------------
-    // Using tokens deployed with soroban-cli
-    //--------------------------------
-    // try {
-    //     await addLiquiditySoroswap({
-    //         tokenA: "CB2RUFY7GU6MTBP6I54MH22GNTE7SZ55MGPBOMZI2B6ETMUUCFFR36YW",
-    //         tokenB: "CCKVLYS652DW6LXJG66E44VBVCNHHCF37S5E55LSD2GOBOVUDML5DWAX",
-    //         amountADesired: "2500000",
-    //         amountBDesired: "2500000",
-    //         amountAMin: "1500000",
-    //         amountBMin: "1500000",
-    //         source: testAccounts[1],
-    //         to: testAccounts[1],
-    //     })
-    // } catch (error) {
-    //     console.log(error)
-    // }
-
-    // -------------------------------
-    // Using wrapped Stellar assets
-    // -------------------------------
-    // console.log("---------------------------------------------------")
-    // console.log("Adding liquidity in Soroswap with stellar assets...")
-    // await printBalances(testAccounts)
-    // try {
-    //     await addLiquiditySoroswap({
-    //         tokenA: getContractIdStellarAsset({ asset: palta }),
-    //         tokenB: getContractIdStellarAsset({ asset: xlm }),
-    //         amountADesired: "1002",
-    //         amountBDesired: "1002",
-    //         amountAMin: "0",
-    //         amountBMin: "0",
-    //         source: testAccounts[1],
-    //         to: testAccounts[1],
-    //     })
-    // } catch (error) {
-    //     console.log(error)
-    // }
-
+    const addLiquiditySoroswapResponse = await txMaker.addLiquiditySoroswap({
+        tokenA: paltaSorobanContractId1 ?? "",
+        tokenB: paltaSorobanContractId2 ?? "",
+        amountADesired: "2500000",
+        amountBDesired: "2500000",
+        amountAMin: "1500000",
+        amountBMin: "1500000",
+        source: testAccounts[1],
+        to: testAccounts[1],
+    })
+    console.log("addLiquiditySoroswapResponse.status:", addLiquiditySoroswapResponse.status)
+    
+    console.log("--------------------------")
+    console.log("Making swaps on Soroswap...")
 }
 main()
 
