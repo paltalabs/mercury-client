@@ -310,7 +310,7 @@ stellar-base@10.0.0:
   optionalDependencies:
     sodium-native "^4.0.1"
 
-stellar-sdk@*, stellar-sdk@^11.0.1:
+stellar-sdk@*, stellar-sdk@^11.1.0:
   version "11.1.0"
   resolved "https://registry.yarnpkg.com/stellar-sdk/-/stellar-sdk-11.1.0.tgz#04df0be3bfee2ffd1db068c92dc4f3ec27309103"
   integrity sha512-fIdo77ogpU+ecHgs59pk9velpXd4F/ch0DzOI4QZw8zVZApc3oeNWP3+X6ui7BWpeRHAGsP2CHQzBLxm0JTIgg==
