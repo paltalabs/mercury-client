@@ -3,6 +3,8 @@ This repository contains a [Mercury](https://mercurydata.app/) client developed 
 
 A subscription signifies that Mercury will store data selected by the subscriber. Consequently, the retrievable data will only encompass events that occur from the moment the subscription is activated. Therefore, when opting to monitor a specific smart contract, you should either interact with that contract yourself or wait for another party to invoke some operation on it. Data from before the subscription's activation will not be available for review.
 
+The most important script here is `do7txs.js` which executes 7 transactions on Stellar/Soroban. It also subscribes the address created in the script to Mercury.
+
 ## What is Mercury?
 [Mercury](https://mercurydata.app/) is an indexer service for Stellar and Soroban. Check more in the [Mercury Docs Page](https://developers.mercurydata.app/)
 
@@ -18,7 +20,17 @@ Copy and update the access token provided by Mercury, refer to [request access](
 ```
 cp .env.example .env
 ```
-Here, you'll need to paste your access token as well as the address of the Soroban Smart Contract that you want to track, and the endpoint address of the Mercury Server.
+
+For executing the do7txs script, you need to set the following variables:
+```
+MERCURY_BACKEND_ENDPOINT=http://ec2-16-170-242-7.eu-north-1.compute.amazonaws.com:3030
+MERCURY_GRAPHQL_ENDPOINT=http://ec2-16-170-242-7.eu-north-1.compute.amazonaws.com:5000
+MERCURY_TESTER_EMAIL=
+MERCURY_TESTER_PASSWORD=
+```
+Those will be used to update the access token on the Mercury server.
+
+For other scripts, you'll need to paste your access token as well as the address of the Soroban Smart Contract that you want to track, and the endpoint address of the Mercury Server.
 ```
 MERCURY_ACCESS_TOKEN=
 CONTRACT_ADDRESS=CBYTTONE7AK2IEPRQUIPAJF6G35KE6HQCA3RFZWKH4HZQGIVQANUMVAN
@@ -43,8 +55,11 @@ The main script for this repo is "do7txs" which executes 7 transactions on Stell
 
 you can run it with:
 ```
-yarn do7txs
+yarn do7txs <standalone | testnet>
 ```
+
+if you are using standalone, make sure you have a running instance of `soroswap/core`, with contracts deployed. Also,
+you need to serve the soroswap's API.
 
 Also, there are other scripts to play around:
 
