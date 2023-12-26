@@ -19,7 +19,7 @@ async function main() {
                 "http://172.21.0.3:8000",
                 "http://172.21.0.3:8000/soroban/rpc",
                 "http://172.21.0.3:8000/friendbot?addr=",
-                "CCHKQNMXOZJMTKOWP7LBZGPC2OWSRA5SEXM2USOBUKYZDKU2XUADJA3S",
+                "CDOYSP6VBUZ4EMFVEGBSLZF4B35BOMC6XAYGFN2INJGZN27B7ACQ3GGV",
                 network
             )
             break;
@@ -291,8 +291,8 @@ async function main() {
     const addLiquiditySoroswapResponse = await txMaker.addLiquiditySoroswap({
         tokenA: paltaSorobanContractId1 ?? "",
         tokenB: paltaSorobanContractId2 ?? "",
-        amountADesired: "2500000",
-        amountBDesired: "2500000",
+        amountADesired: "2000000",
+        amountBDesired: "2000000",
         amountAMin: "1500000",
         amountBMin: "1500000",
         source: testAccounts[1],
@@ -302,8 +302,14 @@ async function main() {
     
     console.log("--------------------------")
     console.log("Making swaps on Soroswap...")
-    // TODO
-
+    const swapExactTokensForTokensSoroswapResponse = await txMaker.swapExactTokensForTokensSoroswap({
+        source: testAccounts[1],
+        amountIn: "100000",
+        amountOutMin: "0",
+        path: [paltaSorobanContractId1 ?? "", paltaSorobanContractId2 ?? ""],
+        to: testAccounts[1],
+    })
+    console.log("swapExactTokensForTokensSoroswapResponse.status:", swapExactTokensForTokensSoroswapResponse.status)
     console.log("--------------------------")
     console.log("Remove liquidity on Soroswap...")
     const removeLiquiditySoroswapResponse = await txMaker.removeLiquiditySoroswap({

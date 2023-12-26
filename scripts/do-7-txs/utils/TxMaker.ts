@@ -651,4 +651,50 @@ export class TxMaker {
         }
     }
 
+    /**
+     * Executes the swap exact tokens for tokens function of the soroswap router contract to swap tokens.
+     * @param args The arguments for swapping tokens.
+     *             - source: The source account's keypair and public key.
+     *             - amountIn: The amount of token A to swap.
+     *             - amountOutMin: The minimum amount of token B to receive.
+     *             - path: A vector representing the trading route, where the first element is the input token. The destination account's keypair and public key.and the last is the output token. Intermediate elements represent pairs to trade through.
+     *             - to: The destination account's keypair and public key.
+     * @returns A promise that resolves to the confirmation of the transaction.
+     */
+    async swapExactTokensForTokensSoroswap(args: {
+        source: TestAccount,
+        amountIn: string,
+        amountOutMin: string,
+        path: string[],
+        to: TestAccount
+    }): Promise<any> {
+        const account = await this.sorobanServer.getAccount(args.source.publicKey);
+        const sourceKeypair = sdk.Keypair.fromSecret(args.source.privateKey);
+
+        const routerContract = new sdk.Contract(this.routerContractAddress);
+        const path = args.path.map((token) => new sdk.Address(token));
+        const scValParams = [
+            sdk.nativeToScVal(Number(args.amountIn), { type: "i128" }),
+            sdk.nativeToScVal(Number(args.amountOutMin), { type: "i128" }),
+            sdk.nativeToScVal(path, { type: "Vec" }),
+            new sdk.Address(args.to.publicKey).toScVal(),
+            sdk.nativeToScVal(getCurrentTimePlusOneHour(), { type: "u64" }),
+        ];
+
+        const op = routerContract.call("swap_exact_tokens_for_tokens", ...scValParams);
+
+        const transaction = this.buildTx(account, sourceKeypair, op);
+
+        const preparedTransaction = await this.sorobanServer.prepareTransaction(transaction);
+        preparedTransaction.sign(sourceKeypair);
+
+        try {
+            const txRes = await this.sorobanServer.sendTransaction(preparedTransaction);
+            const confirmation = await waitForConfirmation(txRes.hash);
+            return confirmation;
+        } catch (error) {
+            showErrorResultCodes(error);
+            console.error(error);
+        }
+    }
 }
