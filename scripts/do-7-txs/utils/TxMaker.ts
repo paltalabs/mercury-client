@@ -135,7 +135,7 @@ export class TxMaker {
         tx.sign(...destinationKeypair);
         try {
             const submitTransactionResponse = await this.horizonServer.submitTransaction(tx);
-            const confirmation = await waitForConfirmation(submitTransactionResponse.hash);
+            const confirmation = await waitForConfirmation(submitTransactionResponse.hash, this.sorobanServer);
             return confirmation;
         } catch (error) {
             console.error("ERROR!", error);
@@ -163,7 +163,7 @@ export class TxMaker {
             preparedTransaction.sign(sourceKeypair);
 
             const txRes = await this.sorobanServer.sendTransaction(preparedTransaction);
-            const confirmation = await waitForConfirmation(txRes.hash);
+            const confirmation = await waitForConfirmation(txRes.hash, this.sorobanServer);
             return confirmation;
         } catch (error) {
             console.log("inside catch");
@@ -201,7 +201,7 @@ export class TxMaker {
 
         try {
             const submitTransactionResponse = await this.horizonServer.submitTransaction(tx);
-            const confirmation = await waitForConfirmation(submitTransactionResponse.hash);
+            const confirmation = await waitForConfirmation(submitTransactionResponse.hash, this.sorobanServer);
             return confirmation;
         } catch (error) {
             console.error("ERROR!", error);
@@ -239,7 +239,7 @@ export class TxMaker {
         let tx = this.buildTx(source, sourceKeypair, ...ops);
         try {
             const submitTransactionResponse = await this.horizonServer.submitTransaction(tx);
-            const confirmation = await waitForConfirmation(submitTransactionResponse.hash);
+            const confirmation = await waitForConfirmation(submitTransactionResponse.hash, this.sorobanServer);
             return confirmation;
         } catch (error) {
             console.error("ERROR!", error);
@@ -312,7 +312,7 @@ export class TxMaker {
                     })
                 )
             );
-            const confirmation = await waitForConfirmation(txRes.hash);
+            const confirmation = await waitForConfirmation(txRes.hash, this.sorobanServer);
             return confirmation;
         } catch (error) {
             console.error("ERROR!", error);
@@ -361,7 +361,7 @@ export class TxMaker {
             );
 
             // Wait for confirmation of the transaction
-            const confirmation = await waitForConfirmation(txRes.hash);
+            const confirmation = await waitForConfirmation(txRes.hash, this.sorobanServer);
             return confirmation;
         }catch(error) {
             console.error("ERROR!", error);
@@ -383,7 +383,7 @@ export class TxMaker {
         let tx = this.buildTx(source, sourceKeypair, ops)
         try {
           const submitTransactionResponse = await this.horizonServer.submitTransaction(tx)
-            const confirmation = await waitForConfirmation(submitTransactionResponse.hash);
+            const confirmation = await waitForConfirmation(submitTransactionResponse.hash, this.sorobanServer);
           return confirmation
         } catch (error) {
             console.error("ERROR!", error);
@@ -418,7 +418,7 @@ export class TxMaker {
 
             // Send the transaction and wait for confirmation
             const submitTransactionResponse = await this.sorobanServer.sendTransaction(preparedTransaction);
-            const confirmation = await waitForConfirmation(submitTransactionResponse.hash);
+            const confirmation = await waitForConfirmation(submitTransactionResponse.hash, this.sorobanServer);
             return confirmation;
         } catch (error) {
             console.error("ERROR!", error);
@@ -459,7 +459,7 @@ export class TxMaker {
 
             // Send the transaction and wait for confirmation
             const submitTransactionResponse = await this.sorobanServer.sendTransaction(preparedTransaction);
-            const confirmation = await waitForConfirmation(submitTransactionResponse.hash);
+            const confirmation = await waitForConfirmation(submitTransactionResponse.hash, this.sorobanServer);
 
             if (confirmation.resultMetaXdr) {
                 // Extract the contract ID from the transaction metadata
@@ -474,7 +474,7 @@ export class TxMaker {
                     .toString("hex") || "";
 
                 // Encode the contract ID as a Stellar contract address
-                return sdk.StrKey.encodeContract(hexToByte(contractId));
+                return sdk.StrKey.encodeContract(Buffer.from(hexToByte(contractId)));
             }
             else {
                 return { status: "error", error: "No resultMetaXdr when creating token contract" };
@@ -515,7 +515,7 @@ export class TxMaker {
         preparedTransaction.sign(sourceKeypair);
         try {
             const txRes = await this.sorobanServer.sendTransaction(preparedTransaction);
-            const confirmation = await waitForConfirmation(txRes.hash);
+            const confirmation = await waitForConfirmation(txRes.hash, this.sorobanServer);
             return confirmation;
         } catch (error) {
             showErrorResultCodes(error);
@@ -552,7 +552,7 @@ export class TxMaker {
         preparedTransaction.sign(sourceKeypair);
         try {
             const txRes = await this.sorobanServer.sendTransaction(preparedTransaction);
-            const confirmation = await waitForConfirmation(txRes.hash);
+            const confirmation = await waitForConfirmation(txRes.hash, this.sorobanServer);
             return confirmation;
         } catch (error) {
             showErrorResultCodes(error);
@@ -601,7 +601,7 @@ export class TxMaker {
 
         try {
             const txRes = await this.sorobanServer.sendTransaction(preparedTransaction);
-            const confirmation = await waitForConfirmation(txRes.hash);
+            const confirmation = await waitForConfirmation(txRes.hash, this.sorobanServer);
             return confirmation;
         } catch (error) {
             showErrorResultCodes(error);
@@ -643,7 +643,7 @@ export class TxMaker {
 
         try {
             const txRes = await this.sorobanServer.sendTransaction(preparedTransaction);
-            const confirmation = await waitForConfirmation(txRes.hash);
+            const confirmation = await waitForConfirmation(txRes.hash, this.sorobanServer);
             return confirmation;
         } catch (error) {
             showErrorResultCodes(error);
@@ -690,7 +690,7 @@ export class TxMaker {
 
         try {
             const txRes = await this.sorobanServer.sendTransaction(preparedTransaction);
-            const confirmation = await waitForConfirmation(txRes.hash);
+            const confirmation = await waitForConfirmation(txRes.hash, this.sorobanServer);
             return confirmation;
         } catch (error) {
             showErrorResultCodes(error);

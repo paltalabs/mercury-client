@@ -2,33 +2,47 @@
 
 // Create users (wallet addresses)
 
-import { createAddress, loadAccounts, saveAccounts, getBalancesFromPublicKey, createAsset, getXLMAsset, createLiquidityPoolAsset, pathPaymentStrictSend, pathPaymentStrictReceive, getContractIdStellarAsset, TxMaker } from "./utils";
-import { ApiErrorResponse, TestAccount } from "./types";
+import {
+    createAddress,
+    loadAccounts,
+    saveAccounts,
+    createAsset,
+    getXLMAsset,
+    createLiquidityPoolAsset,
+    TxMaker,
+    getRouterContractAddress
+} from "./utils";
+import { TestAccount } from "./types";
 import { Mercury } from "mercury-sdk"
-import { test } from "node:test";
+// import { standaloneUri } from "../../standaloneConfig";
 
 async function main() {
     const args = process.argv.slice(2);
     const network = args[0]
 
     let txMaker: TxMaker;
-
+    let apiUri, routerContractAddress: string;
     switch (network) {
         case "standalone":
+            apiUri = "http://soroswapCoreApi:8010"
+            const rpcUri = "http://stellar"
+            routerContractAddress = await getRouterContractAddress(apiUri, network)
             txMaker = new TxMaker(
-                "http://172.21.0.3:8000",
-                "http://172.21.0.3:8000/soroban/rpc",
-                "http://172.21.0.3:8000/friendbot?addr=",
-                "CDOYSP6VBUZ4EMFVEGBSLZF4B35BOMC6XAYGFN2INJGZN27B7ACQ3GGV",
+                `${rpcUri}:8000`,
+                `${rpcUri}:8000/soroban/rpc`,
+                `${rpcUri}:8000/friendbot?addr=`,
+                routerContractAddress,
                 network
             )
             break;
         case "testnet":
+            apiUri = "https://api.soroswap.finance"
+            routerContractAddress = await getRouterContractAddress(apiUri, network)
             txMaker = new TxMaker(
                 "https://horizon-testnet.stellar.org",
                 "https://soroban-testnet.stellar.org",
                 "https://friendbot.stellar.org?addr=",
-                "CBN7GPXDONCH3KCLI2FE6LPPYTRCIQR3I2IOE2Z7OE3OO2UHO7LQ4CZL",
+                routerContractAddress,
                 network
             )
             break;
@@ -36,7 +50,6 @@ async function main() {
             console.error("Unsupported network. Only standalone and testnet are supported.");
             return;
     }
-
 
     console.log("--------------------------")
     console.log("Creating accounts...")
@@ -64,32 +77,39 @@ async function main() {
             await txMaker.fundAccount(acc)
         ))
 
-    // // TODO: Subscribe to mercury
-    // if (process.env.MERCURY_BACKEND_ENDPOINT == undefined ||
-    //     process.env.MERCURY_GRAPHQL_ENDPOINT == undefined ||
-    //     process.env.MERCURY_TESTER_EMAIL == undefined ||
-    //     process.env.MERCURY_TESTER_PASSWORD == undefined) {
-    //     console.error("Environment variables are empty")
-    //     return
-    // }
-    // const mercuryInstance = new Mercury({
-    //     backendEndpoint: process.env.MERCURY_BACKEND_ENDPOINT,
-    //     graphqlEndpoint: process.env.MERCURY_GRAPHQL_ENDPOINT,
-    //     email: process.env.MERCURY_TESTER_EMAIL,
-    //     password: process.env.MERCURY_TESTER_PASSWORD
-    // })
+    console.log("--------------------------")
+    console.log("mercury subscriptions...")
+    if (network == "testnet") {
+        // Subscribe to mercury
+        if (process.env.MERCURY_BACKEND_ENDPOINT == undefined ||
+            process.env.MERCURY_GRAPHQL_ENDPOINT == undefined ||
+            process.env.MERCURY_TESTER_EMAIL == undefined ||
+            process.env.MERCURY_TESTER_PASSWORD == undefined) {
+            console.error("Environment variables are empty")
+            return
+        }
+        const mercuryInstance = new Mercury({
+            backendEndpoint: process.env.MERCURY_BACKEND_ENDPOINT,
+            graphqlEndpoint: process.env.MERCURY_GRAPHQL_ENDPOINT,
+            email: process.env.MERCURY_TESTER_EMAIL,
+            password: process.env.MERCURY_TESTER_PASSWORD
+        })
 
-    // Subscribe to contracts
-    // console.log("subscribing to contracts")
-    // const subscribeToContractEventsResult = await mercuryInstance.subscribeToContractEvents({
-    //     contractId: routerContractAddress,
-    // })
-    // console.log("subscribeToContractEventsResult:", subscribeToContractEventsResult)
+        // Subscribe to contracts
+        console.log("subscribing to events...")
+        const subscribeToContractEventsResult = await mercuryInstance.subscribeToContractEvents({
+            contractId: routerContractAddress,
+        })
+        console.log("subscribeToContractEventsResult:", subscribeToContractEventsResult)
 
-    // Subscribe to accounts
-    // await Promise.all(testAccounts.map(async (acc) => {
-    //     await mercuryInstance.subscribeToFullAccount({ publicKey: acc.publicKey });
-    // }));
+        // Subscribe to accounts
+        console.log("subscribing to accounts...")
+        await Promise.all(testAccounts.map(async (acc) => {
+            await mercuryInstance.subscribeToFullAccount({ publicKey: acc.publicKey });
+        }));
+    } else {
+        console.log("Skipping subscriptions on standalone network")
+    }
 
     // Create a Stellar classic Asset (PALTA) and distribute
     // Account 0 is issuer
@@ -299,7 +319,7 @@ async function main() {
         to: testAccounts[1],
     })
     console.log("addLiquiditySoroswapResponse.status:", addLiquiditySoroswapResponse.status)
-    
+
     console.log("--------------------------")
     console.log("Making swaps on Soroswap...")
     const swapExactTokensForTokensSoroswapResponse = await txMaker.swapExactTokensForTokensSoroswap({
@@ -326,13 +346,3 @@ async function main() {
 
 }
 main()
-
-async function printBalances(testAccounts: TestAccount[]) {
-    console.log("🥑🥑🥑🥑🥑🥑🥑🥑🥑🥑🥑")
-    console.log("🥑 PRINTING BALANCES 🥑")
-    console.log("🥑🥑🥑🥑🥑🥑🥑🥑🥑🥑🥑")
-    for (let i = 0; i < testAccounts.length; i++) {
-        console.log("Account:", i)
-        await getBalancesFromPublicKey(testAccounts[i].publicKey)
-    }
-}
