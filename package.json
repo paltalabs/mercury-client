@@ -4,18 +4,20 @@
   "main": "index.js",
   "license": "MIT",
   "scripts": {
-    "do7txs":"ts-node scripts/do-7-txs",
-    "path-payments": "ts-node scripts/pathPayments/triggerPathPayment.ts"
+    "do7txs": "ts-node scripts/do-7-txs",
+    "path-payments": "ts-node scripts/pathPayments/triggerPathPayment.ts",
+    "test-mercury-sdk": "ts-node scripts/mercurySdkTester/index.ts"
   },
   "dependencies": {
     "@types/stellar-sdk": "^0.15.1",
     "axios": "^1.5.1",
     "dotenv": "^16.3.1",
-    "mercury-sdk": "0.1.10",
+    "mercury-sdk": "0.1.12",
     "soroban-client": "^1.0.0-beta.4",
-    "stellar-sdk": "^10.4.1"
+    "stellar-sdk": "^11.1.0"
   },
   "devDependencies": {
+    "@types/node": "^20.10.4",
     "ts-node": "^10.9.1",
     "typescript": "^5.2.2"
   }

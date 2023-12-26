@@ -37,8 +37,9 @@ docker run --volume ${currentDir}/:/workspace \
            --publish-all \
            --memory=12g \
            --privileged \
-           --net-alias ${containerName} \
+           --network soroban-network \
            ${imageName}:${versionTag}
+        #    --net-alias ${containerName} \
 
 # Set the git config
 # docker exec $containerName git config --global --add safe.directory /workspace

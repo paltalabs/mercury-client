@@ -12,7 +12,7 @@ export interface issueAndDistributeAssetArgs {
 
 export interface paymentArgs {
   from: TestAccount;
-  to: TestAccount;
+  to: string;
   amount: string;
   asset: sdk.Asset
 }
@@ -68,4 +68,48 @@ export interface pathPaymentStrictReceiveArgs {
   destinationAmount: string;
   path: sdk.Asset[];
   source: TestAccount;
+}
+
+export interface addLiquiditySoroswapArgs {
+  tokenA: string;
+  tokenB: string;
+  amountADesired: string; 
+  amountBDesired: string;
+  amountAMin: string;
+  amountBMin: string;
+  source: TestAccount;
+  to: TestAccount;
+}
+
+export interface removeLiquiditySoroswapArgs {
+  tokenA: string;
+  tokenB: string;
+  liquidity: string; 
+  amountAMin: string;
+  amountBMin: string;
+  source: TestAccount;
+  to: TestAccount;
+}
+
+export interface getContractIdStellarAssetArgs {
+  asset: sdk.Asset;
+}
+
+export interface deployStellarAssetContractArgs {
+  asset: sdk.Asset;
+  source: TestAccount;
+}
+
+export interface initializeTokenContractArgs {
+  source: TestAccount;
+  contractId: string;
+  name: string;
+  symbol: string;
+}
+
+export interface mintTokensArgs {
+  source: TestAccount;
+  contractId: string;
+  amount: string;
+  destination:string;
 }
