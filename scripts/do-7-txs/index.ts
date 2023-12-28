@@ -10,7 +10,8 @@ import {
     getXLMAsset,
     createLiquidityPoolAsset,
     TxMaker,
-    getRouterContractAddress
+    getRouterContractAddress,
+    showFailedResponse
 } from "./utils";
 import { TestAccount } from "./types";
 import { Mercury } from "mercury-sdk"
@@ -319,7 +320,8 @@ async function main() {
         to: testAccounts[1],
     })
     console.log("addLiquiditySoroswapResponse.status:", addLiquiditySoroswapResponse.status)
-
+    showFailedResponse(addLiquiditySoroswapResponse)
+    
     console.log("--------------------------")
     console.log("Making swaps on Soroswap...")
     const swapExactTokensForTokensSoroswapResponse = await txMaker.swapExactTokensForTokensSoroswap({

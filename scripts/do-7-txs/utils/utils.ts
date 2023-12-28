@@ -15,12 +15,12 @@ export async function getRouterContractAddress(uri: string, network: string): Pr
   try {
     const response = await axios.get(`${uri}/api/router`);
     const data = response.data;
-    const router = data.find((router: {network: string, router_id: string, router_address:string}) => router.network === network)
+    const router = data.find((router: { network: string, router_id: string, router_address: string }) => router.network === network)
     return router.router_address
   } catch (error) {
     console.log("error:", error);
   }
-  
+
   return "error";
 }
 
@@ -165,7 +165,7 @@ export function showErrorResultCodes(error: any): void {
  * @param server The Soroban RPC server instance.
  * @returns A promise that resolves to the confirmation object when the transaction is confirmed.
  */
-export async function waitForConfirmation(hash: string, server: sdk.SorobanRpc.Server): Promise<sdk.SorobanRpc.Api.GetSuccessfulTransactionResponse|sdk.SorobanRpc.Api.GetFailedTransactionResponse> {
+export async function waitForConfirmation(hash: string, server: sdk.SorobanRpc.Server): Promise<sdk.SorobanRpc.Api.GetSuccessfulTransactionResponse | sdk.SorobanRpc.Api.GetFailedTransactionResponse> {
   let confirmation;
   do {
     confirmation = await server.getTransaction(hash);
@@ -230,4 +230,17 @@ export function getAssetBalance(args: { account: sdk.Horizon.AccountResponse, as
     }
   });
   return balance?.balance;
+}
+
+/**
+ * Logs the failed response object.
+ * @param response The response object to log.
+ */
+export function showFailedResponse(response: any): void {
+  if (response.status === "FAILED") {
+    console.log("response failed")
+    console.log(JSON.stringify(response, null, 2) + "\n");
+  } else  {
+    console.log("response succeeded")
+  }
 }
