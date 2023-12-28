@@ -9,6 +9,7 @@ import {
   getContractEventsParser
 } from "mercury-sdk"
 import dotenv from "dotenv";
+import { getRouterContractAddress, loadAccounts } from "../do-7-txs/utils";
 dotenv.config();
 
 (async function () {
@@ -26,9 +27,11 @@ dotenv.config();
     password: process.env.MERCURY_TESTER_PASSWORD!,
   });
 
-  const publicKey = "GBDJYBFPYUY7XXI5XCT473VJRT7PRGMRA2AJ2TKUKGPLJ5ZGVPJYKEAR";
-  const publicKey2 = "GARDNDBY2VPXVQ46JJR52LNLFHIRQCQZATAYGOERKM4YBWZRUKIJ73BC";
-  const routerContractAddress = "CCKXLDNKPXWJZP5YMHGDOQJDKVJIF4T44BQIZRTBFYUIKVE4CYHU47BK";
+  const testAccounts = loadAccounts()
+  const publicKey = testAccounts![1].publicKey;
+  const publicKey2 = testAccounts![2].publicKey;
+
+  const routerContractAddress = await getRouterContractAddress("https://api.soroswap.finance", "testnet")
 
   const sentPaymentsResponse = await mercuryInstance.getSentPayments({
     publicKey,

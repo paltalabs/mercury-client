@@ -58,8 +58,12 @@ you can run it with:
 yarn do7txs <standalone | testnet>
 ```
 
-if you are using standalone, make sure you have a running instance of `soroswap/core`, with contracts deployed. Also,
-you need to serve the soroswap's API.
+if you are using standalone, make sure you have a running instance of `soroswap/core`, with contracts deployed. Also, you need to serve the soroswap's API.
+
+Then, if you have run the previous script on testnet, you will be able to retrieve the information using mercury. You can do that with:
+```
+yarn retrieve7txs
+```
 
 Also, there are other scripts to play around:
 

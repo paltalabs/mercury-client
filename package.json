@@ -5,6 +5,7 @@
   "license": "MIT",
   "scripts": {
     "do7txs": "ts-node scripts/do-7-txs",
+    "retrieve7txs": "ts-node scripts/mercurySdkTester/retrieve7txs.ts",
     "path-payments": "ts-node scripts/pathPayments/triggerPathPayment.ts",
     "test-mercury-sdk": "ts-node scripts/mercurySdkTester/index.ts"
   },
