@@ -7,7 +7,8 @@
     "do7txs": "ts-node scripts/do-7-txs",
     "retrieve7txs": "ts-node scripts/mercurySdkTester/retrieve7txs.ts",
     "path-payments": "ts-node scripts/pathPayments/triggerPathPayment.ts",
-    "test-mercury-sdk": "ts-node scripts/mercurySdkTester/index.ts"
+    "test-mercury-sdk": "ts-node scripts/mercurySdkTester/index.ts",
+    "updateToken":"ts-node scripts/updateToken.ts"
   },
   "dependencies": {
     "@types/stellar-sdk": "^0.15.1",
