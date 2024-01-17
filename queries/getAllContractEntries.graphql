@@ -1,14 +1,26 @@
-query EntriesByContractId($contractId: String ){
-  entryUpdateByContractId(
-    contract: $contractId
-  ) {
-    nodes {
-      contractId
-      entryDurability
-      keyXdr
-      ledger
-      ledgerTimestamp
-      valueXdr
+query MyQuery($contractId: String!) {
+  entryUpdateByContractId(contract: $contractId) {
+    edges {
+      node {
+        id
+        contractId
+        keyXdr
+        nodeId
+        valueXdr
+        tx
+        txInfoByTx {
+          ledger
+          nodeId
+          txHash
+          entryUpdatesByTx {
+            edges {
+              node {
+                id
+              }
+            }
+          }
+        }
+      }
     }
   }
 }
